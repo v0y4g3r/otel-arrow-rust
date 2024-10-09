@@ -1,0 +1,14 @@
+[package]
+name = "otel-arrow-proto"
+version = "0.1.0"
+edition = "2021"
+
+
+[dependencies]
+tonic = "0.12"
+prost = "0.13"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+[build-dependencies]
+tonic-build = "0.12"

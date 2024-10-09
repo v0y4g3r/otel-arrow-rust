@@ -1,0 +1,61 @@
+receivers:
+  # otelarrow is an OTLP-Arrow receiver that will operate as the SaaS-side
+  # of the bridge.
+  otelarrow:
+    protocols:
+      grpc:
+        # Port 8100 is the endpoint used in edge-collector.
+        endpoint: 127.0.0.1:8100
+
+        # include_metadata is required for the receiver to pass
+        # per-request metadata through to the pipeline.  This
+        # is supported for both arrow and standard modes.
+        include_metadata: true
+        # perform an auth on the SaaS
+        auth:
+          authenticator: basicauth
+
+exporters:
+  debug:      
+    verbosity: normal
+
+  otlphttp:
+    # You can use an HTTP listener on port 8101 to see the headers
+    # and raw data.
+    endpoint: http://127.0.0.1:8101
+    compression: none
+
+    # Associate the headers_setter extension with this exporter
+    # so that it passes through headers set on the edge collector.
+    auth:
+      authenticator: headers_setter
+    
+extensions:
+  # Configure the headers_setter extension to propagate the
+  # X-Scope-OrgID property in the outgoing context.
+  headers_setter:
+    headers:
+      - key: X-Scope-OrgID
+        from_context: X-Scope-OrgID
+      - key: X-Cluster-Name
+        from_context: X-Cluster-Name
+      - key: Authorization
+        from_context: Authorization
+  # Configure basic auth for incoming data.
+  basicauth:
+    htpasswd: 
+      inline: |
+        testuser:testpw
+        arrowstream:arrowpw
+
+service:
+  extensions: [headers_setter, basicauth]
+  pipelines:
+    traces:
+      receivers: [otelarrow]
+      processors: []
+      exporters: [debug, otlphttp]
+
+  telemetry:
+    metrics:
+      address: 127.0.0.1:8889

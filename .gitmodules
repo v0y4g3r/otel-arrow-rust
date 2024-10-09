@@ -1,0 +1,3 @@
+[submodule "otel-arrow"]
+	path = proto/otel-arrow
+	url = https://github.com/open-telemetry/otel-arrow
