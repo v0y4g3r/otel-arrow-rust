@@ -10,13 +10,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::path::{Path};
+use std::path::Path;
 
 fn main() {
     let out_dir = Path::new("src");
-    tonic_build::configure()
+    let builder = tonic_build::configure()
         .build_server(true)
-        .build_client(true)
+        .build_client(true);
+
+    let builder = builder
+        .server_mod_attribute(".", r#"#[cfg(feature = "server")]"#)
+        .client_mod_attribute(".", r#"#[cfg(feature = "client")]"#);
+
+    builder
         .out_dir(out_dir)
         .compile_protos(
             &[
@@ -24,5 +30,5 @@ fn main() {
             ],
             &["proto"],
         )
-        .expect("compile proto");
+        .expect("Failed to compile protos.");
 }

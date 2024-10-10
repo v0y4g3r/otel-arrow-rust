@@ -13,5 +13,5 @@
 #[path = ""]
 pub mod opentelemetry {
     #[path = "opentelemetry.proto.experimental.arrow.v1.rs"]
-    mod arrow;
+    pub mod arrow;
 }
