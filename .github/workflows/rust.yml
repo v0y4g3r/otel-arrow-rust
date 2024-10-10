@@ -20,6 +20,8 @@ jobs:
       run: |
         git submodule update --init --recursive
         git submodule update --recursive --remote
+    - name: Install Protoc
+      uses: arduino/setup-protoc@v3
     - name: Build
       run: cargo build --verbose
     - name: Run tests
