@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use opentelemetry_proto::tonic::metrics::v1::Exemplar;
 
+#[derive(Default)]
 pub struct ExemplarsStore {
     next_id: u32,
     exemplars_by_ids:  HashMap<u32, Vec<Exemplar>>

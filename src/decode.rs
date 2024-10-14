@@ -10,6 +10,5 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-mod related_data;
 mod decoder;
 mod record_message;

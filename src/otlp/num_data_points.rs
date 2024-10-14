@@ -60,7 +60,7 @@ pub fn from_record_batch(
             }
         }
 
-        nbdp.flags = flags.value_at(idx).unwrap_or_default();
+        nbdp.flags = flags.value_at_or_default(idx);
         if let Some(id) = id {
             last_id += id;
             let exemplars = exemplar_store.get_or_create_exemplar_by_id(last_id);

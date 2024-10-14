@@ -1,10 +1,5 @@
 use crate::error;
-use arrow::array::{
-     Array, ArrayAccessor, ArrowPrimitiveType, BooleanArray, DictionaryArray,
-    Float32Array, Float64Array, Int16Array, Int32Array, Int64Array, Int8Array, PrimitiveArray,
-    RecordBatch, StringArray, TimestampNanosecondArray, UInt16Array,
-    UInt32Array, UInt64Array, UInt8Array,
-};
+use arrow::array::{Array, ArrayAccessor, ArrowPrimitiveType, BinaryArray, BooleanArray, DictionaryArray, Float32Array, Float64Array, Int16Array, Int32Array, Int64Array, Int8Array, PrimitiveArray, RecordBatch, StringArray, TimestampNanosecondArray, UInt16Array, UInt32Array, UInt64Array, UInt8Array};
 use arrow::datatypes::ArrowNativeType;
 use arrow::datatypes::{ArrowDictionaryKeyType, TimeUnit};
 use paste::paste;
@@ -83,6 +78,19 @@ impl<'a> NullableArrayAccessor for &StringArray {
     }
 }
 
+impl<'a> NullableArrayAccessor for &BinaryArray {
+    type Native = Vec<u8>;
+
+    fn value_at(&self, idx: usize) -> Option<Self::Native> {
+        if self.is_valid(idx) {
+            Some(self.value(idx).to_vec())
+        } else {
+            None
+        }
+    }
+}
+
+
 macro_rules! impl_downcast {
     ($suffix:ident, $data_type:expr, $array_type:ident) => {
         paste!{
@@ -132,12 +140,14 @@ impl_downcast!(f32, Float32, Float32Array);
 impl_downcast!(f64, Float64, Float64Array);
 
 impl_downcast!(string, Utf8, StringArray);
+impl_downcast!(binary, Binary, BinaryArray);
 
 impl_downcast!(
     timestamp_nanosecond,
     Timestamp(TimeUnit::Nanosecond, None),
     TimestampNanosecondArray
 );
+
 
 trait NullableInt64ArrayAccessor {
     fn i64_at(&self, idx: usize) -> error::Result<Option<i64>>;

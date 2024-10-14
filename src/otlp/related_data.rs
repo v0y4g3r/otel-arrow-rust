@@ -1,3 +1,5 @@
+use arrow::array::RecordBatch;
+use crate::error;
 use crate::otlp::attribute_store::AttributeStore;
 use crate::otlp::data_point_store::{
     EHistogramDataPointsStore, HistogramDataPointsStore, NumberDataPointsStore,
@@ -5,6 +7,7 @@ use crate::otlp::data_point_store::{
 };
 use crate::otlp::exemplar::ExemplarsStore;
 
+#[derive(Default)]
 pub struct RelatedData {
     metric_id: u16,
 
@@ -33,4 +36,12 @@ impl RelatedData {
         self.metric_id += delta;
         self.metric_id
     }
+}
+
+
+pub fn from_record_batches(rbs: &[RecordBatch]) ->error::Result<RelatedData>{
+    let related_data = RelatedData::default();
+
+
+    Ok(related_data)
 }

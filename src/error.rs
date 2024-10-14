@@ -1,7 +1,8 @@
+use crate::otlp::attribute_store::AttributeValueType;
+use crate::otlp::metric::MetricType;
 use arrow::datatypes::DataType;
 use num_enum::TryFromPrimitiveError;
 use snafu::{Location, Snafu};
-use crate::otlp::metric::MetricType;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -38,6 +39,21 @@ pub enum Error {
     },
     #[snafu(display("Unable to handle empty metric type"))]
     EmptyMetricType {
+        #[snafu(implicit)]
+        location: Location,
+    },
+
+    #[snafu(display("Cannot recognize attribute value type"))]
+    UnrecognizedAttributeValueType {
+        #[snafu(source)]
+        error: TryFromPrimitiveError<AttributeValueType>,
+        #[snafu(implicit)]
+        location: Location,
+    },
+
+    #[snafu(display("Currently attribute store value type: {} is not supported", type_name))]
+    UnsupportedAttributeValue{
+        type_name: String,
         #[snafu(implicit)]
         location: Location,
     }
