@@ -11,8 +11,15 @@ server = []
 trace = []
 
 [dependencies]
+arrow = "53"
 prost = "0.13"
 tonic = "0.12"
+lazy_static = "1.5"
+snafu = { version = "0.8" }
+opentelemetry-proto = "0.26"
+paste = "1.0"
+num_enum = "0.7"
+serde = { version = "1.0.210", features = ["derive"] }
 
 [build-dependencies]
 tonic-build = "0.12"

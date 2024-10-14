@@ -10,18 +10,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#![feature(option_get_or_insert_default)]
-#![feature(let_chains)]
-
-#[allow(dead_code)]
-pub(crate) mod arrays;
-mod decode;
-mod error;
-mod otlp;
-mod schema;
-
-#[path = ""]
-pub mod opentelemetry {
-    #[path = "opentelemetry.proto.experimental.arrow.v1.rs"]
-    pub mod arrow;
-}
+mod related_data;
+mod decoder;
+mod record_message;
