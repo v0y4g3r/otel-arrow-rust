@@ -23,6 +23,7 @@ mod schema;
 
 #[path = ""]
 pub mod opentelemetry {
+    #[allow(clippy::all)]
     #[path = "opentelemetry.proto.experimental.arrow.v1.rs"]
     pub mod arrow;
 }

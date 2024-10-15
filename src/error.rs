@@ -111,5 +111,5 @@ pub enum Error {
         actual: i32,
         #[snafu(implicit)]
         location: Location,
-    }
+    },
 }

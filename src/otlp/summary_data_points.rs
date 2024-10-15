@@ -3,7 +3,7 @@ use crate::arrays::{
     get_u64_array, NullableArrayAccessor,
 };
 use crate::error;
-use crate::otlp::attribute_store::AttributeStore;
+use crate::otlp::attribute_store::Attribute32Store;
 use crate::otlp::data_point_store::SummaryDataPointsStore;
 use crate::otlp::metric::AppendAndGet;
 use crate::schema::consts;
@@ -15,7 +15,7 @@ impl SummaryDataPointsStore {
     // see https://github.com/open-telemetry/otel-arrow/blob/985aa1500a012859cec44855e187eacf46eda7c8/pkg/otel/metrics/otlp/summary.go#L117
     pub fn from_record_batch(
         rb: &RecordBatch,
-        attr_store: &AttributeStore<u32>,
+        attr_store: &mut Attribute32Store,
     ) -> error::Result<SummaryDataPointsStore> {
         let mut store = SummaryDataPointsStore::default();
         let mut prev_parent_id = 0;
@@ -51,7 +51,7 @@ impl SummaryDataPointsStore {
             }
             sdp.flags = flag_arr.value_at_or_default(idx);
             if let Some(id) = id_arr_opt.value_at(idx)
-                && let Some(attr) = attr_store.attribute_by_id(id)
+                && let Some(attr) = attr_store.attribute_by_delta_id(id)
             {
                 sdp.attributes = attr.to_vec();
             }

@@ -3,7 +3,7 @@ use crate::arrays::{
     NullableArrayAccessor,
 };
 use crate::error::Result;
-use crate::otlp::attribute_store::AttributeStore;
+use crate::otlp::attribute_store::Attribute32Store;
 use crate::otlp::data_point_store::NumberDataPointsStore;
 use crate::otlp::exemplar::ExemplarsStore;
 use crate::schema::consts;
@@ -16,7 +16,7 @@ impl NumberDataPointsStore {
     pub fn from_record_batch(
         rb: &RecordBatch,
         exemplar_store: &mut ExemplarsStore,
-        attribute_store: &AttributeStore<u32>,
+        attribute_store: &Attribute32Store,
     ) -> Result<NumberDataPointsStore> {
         let mut store = NumberDataPointsStore::default();
 
@@ -42,10 +42,15 @@ impl NumberDataPointsStore {
             prev_parent_id = parent_id;
 
             let nbdps = store.get_or_default(parent_id);
-            let mut nbdp = NumberDataPoint::default();
-            nbdp.start_time_unix_nano =
-                start_time_unix_nano_array.value_at(idx).unwrap_or_default() as u64;
-            nbdp.time_unix_nano = time_unix_nano_array.value_at(idx).unwrap_or_default() as u64;
+            let mut nbdp = NumberDataPoint {
+                attributes: vec![],
+                start_time_unix_nano: start_time_unix_nano_array.value_at(idx).unwrap_or_default()
+                    as u64,
+                time_unix_nano: time_unix_nano_array.value_at(idx).unwrap_or_default() as u64,
+                exemplars: vec![],
+                flags: flags.value_at_or_default(idx),
+                value: None,
+            };
 
             match (int_value.value_at(idx), double_value.value_at(idx)) {
                 (Some(int), None) => {
@@ -62,7 +67,6 @@ impl NumberDataPointsStore {
                 }
             }
 
-            nbdp.flags = flags.value_at_or_default(idx);
             if let Some(id) = id {
                 last_id += id;
                 let exemplars = exemplar_store.get_or_create_exemplar_by_id(last_id);

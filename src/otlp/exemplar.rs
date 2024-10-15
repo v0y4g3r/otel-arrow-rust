@@ -3,7 +3,7 @@ use crate::arrays::{
     get_u32_array_opt, NullableArrayAccessor,
 };
 use crate::error;
-use crate::otlp::attribute_store::AttributeStore;
+use crate::otlp::attribute_store::Attribute32Store;
 use crate::otlp::metric::AppendAndGet;
 use crate::schema::consts;
 use arrow::array::RecordBatch;
@@ -29,7 +29,7 @@ impl ExemplarsStore {
 }
 
 impl ExemplarsStore {
-    pub fn try_from(rb: &RecordBatch, attr_store: &AttributeStore<u32>) -> error::Result<Self> {
+    pub fn try_from(rb: &RecordBatch, attr_store: &mut Attribute32Store) -> error::Result<Self> {
         let mut exemplars_store = Self::default();
         let mut parent_id_decoder =
             ExemplarParentIdDecoder::new(ParentIdEncoding::ParentIdDeltaGroupEncoding);
@@ -96,7 +96,7 @@ impl ExemplarsStore {
             }
 
             if let Some(id) = id_opt
-                && let Some(attrs) = attr_store.attribute_by_id(id)
+                && let Some(attrs) = attr_store.attribute_by_delta_id(id)
             {
                 current_exemplar.filtered_attributes = attrs.to_vec();
             }
@@ -107,6 +107,7 @@ impl ExemplarsStore {
 }
 
 //todo: maybe merge with [attribute_decoder::ParentIdEncoding]
+#[allow(clippy::enum_variant_names)]
 #[derive(Eq, PartialEq, Debug, TryFromPrimitive)]
 #[repr(u8)]
 enum ParentIdEncoding {

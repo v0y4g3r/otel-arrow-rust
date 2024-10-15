@@ -19,7 +19,7 @@ mod histogram_data_points;
 pub mod metric;
 mod number_data_points;
 
-#[allow(dead_code)]
-mod related_data;
-mod summary_data_points;
 mod e_hostograms;
+#[allow(dead_code)]
+pub mod related_data;
+mod summary_data_points;

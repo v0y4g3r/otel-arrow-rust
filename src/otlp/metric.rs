@@ -269,15 +269,17 @@ pub fn metrics_from(
             }
 
             if let Some(res_id) = resource_arrays.id.value_at(idx)
-                && let Some(attrs) = related_data.res_attr_map_store.attribute_by_id(res_id)
+                && let Some(attrs) = related_data
+                    .res_attr_map_store
+                    .attribute_by_delta_id(res_id)
             {
                 resource.attributes = attrs.to_vec();
             }
             res_metrics.schema_url = resource_arrays.schema_url.value_at(idx).unwrap_or_default();
         }
 
-        let scope_delta_id = scope_arrays.id.value_at(idx).unwrap_or_default();
-        scope_id += scope_delta_id;
+        let scope_delta_id_opt = scope_arrays.id.value_at(idx);
+        scope_id += scope_delta_id_opt.unwrap_or_default();
 
         if prev_scope_id != Some(scope_id) {
             prev_scope_id = Some(scope_id);
@@ -286,14 +288,19 @@ pub fn metrics_from(
                 &mut metrics.resource_metrics.last_mut().unwrap().scope_metrics;
             let scope_metrics = current_scope_metrics_slice.append_and_get();
 
-            let mut scope: InstrumentationScope = InstrumentationScope::default();
-            scope.name = scope_arrays.name.value_at_or_default(idx);
-            scope.version = scope_arrays.version.value_at_or_default(idx);
-            scope.dropped_attributes_count = scope_arrays
-                .dropped_attributes_count
-                .value_at_or_default(idx);
-            if let Some(scope_id) = scope_arrays.id.value_at(idx)
-                && let Some(attrs) = related_data.scope_attr_map_store.attribute_by_id(scope_id)
+            let mut scope = InstrumentationScope {
+                name: scope_arrays.name.value_at_or_default(idx),
+                version: scope_arrays.version.value_at_or_default(idx),
+                dropped_attributes_count: scope_arrays
+                    .dropped_attributes_count
+                    .value_at_or_default(idx),
+                attributes: vec![],
+            };
+
+            if let Some(scope_id) = scope_delta_id_opt
+                && let Some(attrs) = related_data
+                    .scope_attr_map_store
+                    .attribute_by_delta_id(scope_id)
             {
                 scope.attributes = attrs.to_vec();
             }

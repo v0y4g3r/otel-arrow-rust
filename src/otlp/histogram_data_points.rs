@@ -15,8 +15,8 @@ use crate::arrays::{
     get_u32_array_opt, get_u64_array, NullableArrayAccessor,
 };
 use crate::error;
-use crate::otlp::attribute_store::AttributeStore;
-use crate::otlp::data_point_store::{HistogramDataPointsStore};
+use crate::otlp::attribute_store::Attribute32Store;
+use crate::otlp::data_point_store::HistogramDataPointsStore;
 use crate::otlp::exemplar::ExemplarsStore;
 use crate::otlp::metric::AppendAndGet;
 use crate::schema::consts;
@@ -31,28 +31,29 @@ impl HistogramDataPointsStore {
     pub fn from_record_batch(
         rb: &RecordBatch,
         exemplar_store: &mut ExemplarsStore,
-        attrs_store: &AttributeStore<u32>,
+        attrs_store: &Attribute32Store,
     ) -> error::Result<HistogramDataPointsStore> {
         let mut store = HistogramDataPointsStore::default();
 
         let id_array_opt = get_u32_array_opt(rb, consts::ID)?;
         let delta_id = get_u16_array(rb, consts::PARENT_ID)?;
-        let start_time_unix_nano = get_timestamp_nanosecond_array(rb, consts::START_TIME_UNIX_NANO)?;
+        let start_time_unix_nano =
+            get_timestamp_nanosecond_array(rb, consts::START_TIME_UNIX_NANO)?;
         let time_unix_nano = get_timestamp_nanosecond_array(rb, consts::TIME_UNIX_NANO)?;
         let histogram_count = get_u64_array(rb, consts::HISTOGRAM_COUNT)?;
         let sum = get_f64_array_opt(rb, consts::HISTOGRAM_SUM)?;
-        let bucket_counts_arr: ListValueAccessor<UInt64Type> =
-            ListValueAccessor::try_new(rb.column_by_name(consts::HISTOGRAM_BUCKET_COUNTS).context(
+        let bucket_counts_arr: ListValueAccessor<UInt64Type> = ListValueAccessor::try_new(
+            rb.column_by_name(consts::HISTOGRAM_BUCKET_COUNTS).context(
                 error::ColumnNotFoundSnafu {
                     name: consts::HISTOGRAM_BUCKET_COUNTS,
                 },
-            )?)?;
-        let explicit_bounds_arr: ListValueAccessor<Float64Type> = ListValueAccessor::try_new(
-            rb.column_by_name(consts::HISTOGRAM_EXPLICIT_BOUNDS).context(
-                error::ColumnNotFoundSnafu {
-                    name: consts::HISTOGRAM_EXPLICIT_BOUNDS,
-                },
             )?,
+        )?;
+        let explicit_bounds_arr: ListValueAccessor<Float64Type> = ListValueAccessor::try_new(
+            rb.column_by_name(consts::HISTOGRAM_EXPLICIT_BOUNDS)
+                .context(error::ColumnNotFoundSnafu {
+                    name: consts::HISTOGRAM_EXPLICIT_BOUNDS,
+                })?,
         )?;
         let flags_arr = get_u32_array(rb, consts::FLAGS)?;
         let max_arr = get_f64_array_opt(rb, consts::HISTOGRAM_MAX)?;

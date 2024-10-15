@@ -81,7 +81,7 @@ impl NullableArrayAccessor for Option<&BooleanArray> {
     }
 }
 
-impl<'a> NullableArrayAccessor for &StringArray {
+impl NullableArrayAccessor for &StringArray {
     type Native = String;
 
     fn value_at(&self, idx: usize) -> Option<Self::Native> {
@@ -93,7 +93,7 @@ impl<'a> NullableArrayAccessor for &StringArray {
     }
 }
 
-impl<'a> NullableArrayAccessor for &BinaryArray {
+impl NullableArrayAccessor for &BinaryArray {
     type Native = Vec<u8>;
 
     fn value_at(&self, idx: usize) -> Option<Self::Native> {

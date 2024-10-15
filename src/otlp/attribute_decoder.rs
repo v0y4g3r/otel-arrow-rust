@@ -52,6 +52,7 @@ impl ParentId for u32 {
     }
 }
 
+#[allow(clippy::enum_variant_names)]
 #[derive(Copy, Clone, Eq, PartialEq, Debug, TryFromPrimitive)]
 #[repr(u8)]
 pub enum ParentIdEncoding {
@@ -106,7 +107,7 @@ where
             }
             // Key-value scoped delta.
             ParentIdEncoding::ParentIdDeltaGroupEncoding => {
-                if self.prev_key.as_deref() == Some(key) && self.prev_value.as_ref() == Some(&value)
+                if self.prev_key.as_deref() == Some(key) && self.prev_value.as_ref() == Some(value)
                 {
                     let parent_id = self.prev_parent_id.add(delta_or_parent_id);
                     self.prev_parent_id = parent_id;

@@ -36,14 +36,17 @@ impl EHistogramDataPointsStore {
 
         let id_arr_opt = get_u32_array_opt(rb, consts::ID)?;
         let delta_arr = get_u16_array(rb, consts::PARENT_ID)?;
-        let start_time_unix_nano = get_timestamp_nanosecond_array(rb, consts::START_TIME_UNIX_NANO)?;
+        let start_time_unix_nano =
+            get_timestamp_nanosecond_array(rb, consts::START_TIME_UNIX_NANO)?;
         let time_unix_nano = get_timestamp_nanosecond_array(rb, consts::TIME_UNIX_NANO)?;
         let histogram_count = get_u64_array(rb, consts::HISTOGRAM_COUNT)?;
         let sum_arr = get_f64_array_opt(rb, consts::HISTOGRAM_SUM)?;
         let scale_arr = get_i32_array(rb, consts::EXP_HISTOGRAM_SCALE)?;
         let zero_count_arr = get_u64_array(rb, consts::EXP_HISTOGRAM_ZERO_COUNT)?;
-        let positive_arr = PositiveNegativeArrayAccess::try_new(rb, consts::EXP_HISTOGRAM_POSITIVE)?;
-        let negative_arr = PositiveNegativeArrayAccess::try_new(rb, consts::EXP_HISTOGRAM_NEGATIVE)?;
+        let positive_arr =
+            PositiveNegativeArrayAccess::try_new(rb, consts::EXP_HISTOGRAM_POSITIVE)?;
+        let negative_arr =
+            PositiveNegativeArrayAccess::try_new(rb, consts::EXP_HISTOGRAM_NEGATIVE)?;
         let flags_arr = get_u32_array(rb, consts::FLAGS)?;
         let min_arr = get_f64_array_opt(rb, consts::HISTOGRAM_MIN)?;
         let max_arr = get_f64_array_opt(rb, consts::HISTOGRAM_MAX)?;
