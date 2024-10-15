@@ -51,6 +51,12 @@ impl<T> AttributeStore<T>
 where
     T: ParentId,
 {
+
+    pub fn attribute_by_delta_id(&mut self, delta: T)->Option<&[KeyValue]>{
+        self.last_id += delta;
+        self.attribute_by_ids.get(&self.last_id).map(|r| r.as_slice())
+    }
+
     pub fn attribute_by_id(&self, id: T) -> Option<&[KeyValue]> {
         self.attribute_by_ids.get(&id).map(|r| r.as_slice())
     }

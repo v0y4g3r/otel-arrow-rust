@@ -18,10 +18,10 @@ use arrow::datatypes::DataType;
 use num_enum::TryFromPrimitive;
 use opentelemetry_proto::tonic::common::v1::any_value;
 use std::hash::Hash;
+use std::ops::{Add, AddAssign};
 
-pub trait ParentId: Copy + Hash + Eq + Default {
+pub trait ParentId: Copy + Hash + Eq + Default + Add<Output = Self> + AddAssign {
     type Array: NullableArrayAccessor<Native = Self>;
-    fn add(self, other: Self) -> Self;
 
     fn arrow_data_type() -> DataType;
 
@@ -30,10 +30,6 @@ pub trait ParentId: Copy + Hash + Eq + Default {
 
 impl ParentId for u16 {
     type Array = UInt16Array;
-
-    fn add(self, other: Self) -> Self {
-        self + other
-    }
 
     fn arrow_data_type() -> DataType {
         DataType::UInt16
@@ -46,10 +42,6 @@ impl ParentId for u16 {
 
 impl ParentId for u32 {
     type Array = UInt32Array;
-
-    fn add(self, other: Self) -> Self {
-        self + other
-    }
 
     fn arrow_data_type() -> DataType {
         DataType::UInt32

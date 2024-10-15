@@ -15,6 +15,8 @@ use std::collections::HashMap;
 
 #[derive(Default)]
 pub struct ExemplarsStore {
+    // This field is also not used anywhere in otel-arrow: https://github.com/open-telemetry/otel-arrow/blob/985aa1500a012859cec44855e187eacf46eda7c8/pkg/otel/metrics/otlp/exemplar.go#L49
+    #[allow(unused)]
     next_id: u32,
     exemplars_by_ids: HashMap<u32, Vec<Exemplar>>,
 }
