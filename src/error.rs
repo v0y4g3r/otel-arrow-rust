@@ -105,4 +105,11 @@ pub enum Error {
         #[snafu(implicit)]
         location: Location,
     },
+
+    #[snafu(display("Unsupported payload type, got: {}", actual))]
+    UnsupportedPayloadType {
+        actual: i32,
+        #[snafu(implicit)]
+        location: Location,
+    }
 }

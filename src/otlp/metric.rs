@@ -17,12 +17,11 @@ use crate::arrays::{
 use crate::error;
 use crate::otlp::related_data::RelatedData;
 use crate::schema::consts;
-use crate::schema::consts::DROPPED_ATTRIBUTES_COUNT;
 use arrow::array::{
-    Array, BooleanArray, Int32Array, RecordBatch, StringArray, StructArray, UInt16Array,
+    Array, ArrayRef, BooleanArray, Int32Array, RecordBatch, StringArray, StructArray, UInt16Array,
     UInt32Array, UInt8Array,
 };
-use arrow::datatypes::{DataType, Fields};
+use arrow::datatypes::{DataType, Field, Fields};
 use num_enum::TryFromPrimitive;
 use opentelemetry_proto::tonic::collector::metrics::v1::ExportMetricsServiceRequest;
 use opentelemetry_proto::tonic::common::v1::InstrumentationScope;
@@ -46,43 +45,51 @@ struct ResourceArrays<'a> {
     schema_url: &'a StringArray,
 }
 
+impl<'a> ResourceArrays<'a> {
+    fn data_type() -> DataType {
+        DataType::Struct(Fields::from(vec![
+            Field::new(consts::ID, DataType::UInt16, true),
+            Field::new(consts::DROPPED_ATTRIBUTES_COUNT, DataType::UInt32, true),
+            Field::new(consts::SCHEMA_URL, DataType::Utf8, true),
+        ]))
+    }
+}
+
 impl<'a> TryFrom<&'a RecordBatch> for ResourceArrays<'a> {
     type Error = error::Error;
 
     fn try_from(rb: &'a RecordBatch) -> Result<Self, Self::Error> {
-        let struct_array =
-            rb.column_by_name(consts::RESOURCE)
-                .context(error::ColumnNotFoundSnafu {
-                    name: consts::RESOURCE,
-                })?;
+        let struct_array = Downcaster {
+            name: consts::RESOURCE,
+            source: rb,
+            array: |rb: &'a RecordBatch| rb.column_by_name(consts::RESOURCE),
+            expect_type: Self::data_type,
+        }
+        .downcast::<StructArray>()?;
 
-        let struct_array = struct_array
-            .as_any()
-            .downcast_ref::<StructArray>()
-            .with_context(|| error::ColumnDataTypeMismatchSnafu {
-                name: consts::RESOURCE,
-                expect: DataType::Struct(Fields::default()), //todo
-                actual: struct_array.data_type().clone(),
-            })?;
+        let id_array = Downcaster {
+            name: consts::ID,
+            source: struct_array,
+            array: |s: &'a StructArray| s.column_by_name(consts::ID),
+            expect_type: || DataType::UInt16,
+        }
+        .downcast::<UInt16Array>()?;
 
-        let id_array = struct_array
-            .column_by_name(consts::ID)
-            .unwrap()
-            .as_any()
-            .downcast_ref::<UInt16Array>()
-            .unwrap();
-        let dropped_attributes_count = struct_array
-            .column_by_name(DROPPED_ATTRIBUTES_COUNT)
-            .unwrap()
-            .as_any()
-            .downcast_ref::<UInt32Array>()
-            .unwrap();
-        let schema_url = struct_array
-            .column_by_name(consts::SCHEMA_URL)
-            .unwrap()
-            .as_any()
-            .downcast_ref::<StringArray>()
-            .unwrap();
+        let dropped_attributes_count = Downcaster {
+            name: consts::DROPPED_ATTRIBUTES_COUNT,
+            source: struct_array,
+            array: |s: &'a StructArray| s.column_by_name(consts::DROPPED_ATTRIBUTES_COUNT),
+            expect_type: || DataType::UInt32,
+        }
+        .downcast::<UInt32Array>()?;
+
+        let schema_url = Downcaster {
+            name: consts::SCHEMA_URL,
+            source: struct_array,
+            array: |s: &'a StructArray| s.column_by_name(consts::SCHEMA_URL),
+            expect_type: || DataType::Utf8,
+        }
+        .downcast::<StringArray>()?;
 
         Ok(Self {
             id: id_array,
@@ -99,47 +106,87 @@ struct ScopeArrays<'a> {
     id: &'a UInt16Array,
 }
 
+impl<'a> ScopeArrays<'a> {
+    fn data_type() -> DataType {
+        DataType::Struct(Fields::from(vec![
+            Field::new(consts::NAME, DataType::Utf8, true),
+            Field::new(consts::VERSION, DataType::Utf8, true),
+            Field::new(consts::DROPPED_ATTRIBUTES_COUNT, DataType::UInt32, true),
+            Field::new(consts::ID, DataType::UInt16, true),
+        ]))
+    }
+}
+
+struct Downcaster<S, F> {
+    name: &'static str,
+    source: S,
+    array: F,
+    expect_type: fn() -> DataType,
+}
+
+impl<'a, S, F> Downcaster<S, F> {
+    fn downcast<'s, A>(self) -> error::Result<&'a A>
+    where
+        A: Array + 'static,
+        F: Fn(S) -> Option<&'a ArrayRef>,
+        S: 'a,
+    {
+        let array =
+            (self.array)(self.source).context(error::ColumnNotFoundSnafu { name: self.name })?;
+        array
+            .as_any()
+            .downcast_ref::<A>()
+            .with_context(|| error::ColumnDataTypeMismatchSnafu {
+                name: self.name,
+                expect: (self.expect_type)(),
+                actual: array.data_type().clone(),
+            })
+    }
+}
+
 impl<'a> TryFrom<&'a RecordBatch> for ScopeArrays<'a> {
     type Error = error::Error;
 
     fn try_from(rb: &'a RecordBatch) -> Result<Self, Self::Error> {
-        let scope_array = rb
-            .column_by_name(consts::SCOPE)
-            .context(error::ColumnNotFoundSnafu {
-                name: consts::SCOPE,
-            })?;
-        let scope_array = scope_array
-            .as_any()
-            .downcast_ref::<StructArray>()
-            .with_context(|| error::ColumnDataTypeMismatchSnafu {
-                name: consts::SCOPE,
-                expect: DataType::Struct(Fields::default()),
-                actual: scope_array.data_type().clone(),
-            })?;
-        let name = scope_array
-            .column_by_name(consts::NAME)
-            .unwrap()
-            .as_any()
-            .downcast_ref::<StringArray>()
-            .unwrap();
-        let version = scope_array
-            .column_by_name(consts::VERSION)
-            .unwrap()
-            .as_any()
-            .downcast_ref::<StringArray>()
-            .unwrap();
-        let dropped_attributes_count = scope_array
-            .column_by_name(consts::DROPPED_ATTRIBUTES_COUNT)
-            .unwrap()
-            .as_any()
-            .downcast_ref::<UInt32Array>()
-            .unwrap();
-        let id = scope_array
-            .column_by_name(consts::ID)
-            .unwrap()
-            .as_any()
-            .downcast_ref::<UInt16Array>()
-            .unwrap();
+        let scope_array = Downcaster {
+            name: consts::SCOPE,
+            source: rb,
+            array: |rb: &'a RecordBatch| rb.column_by_name(consts::SCOPE),
+            expect_type: Self::data_type,
+        }
+        .downcast::<StructArray>()?;
+
+        let name = Downcaster {
+            name: consts::NAME,
+            source: scope_array,
+            array: |s: &'a StructArray| s.column_by_name(consts::NAME),
+            expect_type: || DataType::Utf8,
+        }
+        .downcast::<StringArray>()?;
+
+        let version = Downcaster {
+            name: consts::VERSION,
+            source: scope_array,
+            array: |s: &'a StructArray| s.column_by_name(consts::VERSION),
+            expect_type: || DataType::Utf8,
+        }
+        .downcast::<StringArray>()?;
+
+        let dropped_attributes_count = Downcaster {
+            name: consts::DROPPED_ATTRIBUTES_COUNT,
+            source: scope_array,
+            array: |s: &'a StructArray| s.column_by_name(consts::DROPPED_ATTRIBUTES_COUNT),
+            expect_type: || DataType::UInt32,
+        }
+        .downcast::<UInt32Array>()?;
+
+        let id = Downcaster {
+            name: consts::ID,
+            source: scope_array,
+            array: |s: &'a StructArray| s.column_by_name(consts::ID),
+            expect_type: || DataType::UInt16,
+        }
+        .downcast::<UInt16Array>()?;
 
         Ok(Self {
             name,
@@ -256,6 +303,7 @@ pub fn metrics_from(
         }
 
         // Creates a metric at the end of current scope metrics slice.
+        // safety: we've append at least one value at each slice when reach here.
         let current_scope_metrics = &mut metrics
             .resource_metrics
             .last_mut()

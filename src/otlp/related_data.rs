@@ -71,11 +71,7 @@ pub fn from_record_messages(rbs: &[RecordMessage]) -> error::Result<(RelatedData
     let mut exp_histogram_dp_ex_idx: Option<usize> = None;
 
     for (idx, rm) in rbs.iter().enumerate() {
-        let payload_type = ArrowPayloadType::try_from(rm.payload_type).unwrap();
-        match payload_type {
-            ArrowPayloadType::Unknown => {
-                todo!("error")
-            }
+        match rm.payload_type {
             ArrowPayloadType::ResourceAttrs => {
                 related_data.res_attr_map_store = Attribute16Store::try_from(&rm.record)?;
             }
@@ -124,13 +120,19 @@ pub fn from_record_messages(rbs: &[RecordMessage]) -> error::Result<(RelatedData
                     Attribute32Store::try_from(&rm.record)?;
             }
             ArrowPayloadType::HistogramDpExemplarAttrs => {
-                related_data.histogram_exemplar_attrs_store = Attribute32Store::try_from(&rm.record)?;
+                related_data.histogram_exemplar_attrs_store =
+                    Attribute32Store::try_from(&rm.record)?;
             }
             ArrowPayloadType::ExpHistogramDpExemplarAttrs => {
                 related_data.exp_histogram_exemplar_attrs_store =
                     Attribute32Store::try_from(&rm.record)?;
             }
-            _ => unimplemented!(),
+            _ => {
+                return error::UnsupportedPayloadTypeSnafu {
+                    actual: rm.payload_type,
+                }
+                .fail();
+            }
         }
     }
 
