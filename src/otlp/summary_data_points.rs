@@ -11,51 +11,54 @@ use arrow::array::{Array, ArrayRef, Float64Array, ListArray, RecordBatch, Struct
 use opentelemetry_proto::tonic::metrics::v1::summary_data_point::ValueAtQuantile;
 use snafu::OptionExt;
 
-// see https://github.com/open-telemetry/otel-arrow/blob/985aa1500a012859cec44855e187eacf46eda7c8/pkg/otel/metrics/otlp/summary.go#L117
-pub fn from_record_batch(
-    rb: &RecordBatch,
-    attr_store: &AttributeStore<u32>,
-) -> error::Result<SummaryDataPointsStore> {
-    let mut store = SummaryDataPointsStore::default();
-    let mut prev_parent_id = 0;
+impl SummaryDataPointsStore {
+    // see https://github.com/open-telemetry/otel-arrow/blob/985aa1500a012859cec44855e187eacf46eda7c8/pkg/otel/metrics/otlp/summary.go#L117
+    pub fn from_record_batch(
+        rb: &RecordBatch,
+        attr_store: &AttributeStore<u32>,
+    ) -> error::Result<SummaryDataPointsStore> {
+        let mut store = SummaryDataPointsStore::default();
+        let mut prev_parent_id = 0;
 
-    let id_arr_opt = get_u32_array_opt(rb, consts::ID)?;
-    let delta_id_arr = get_u16_array(rb, consts::ParentID)?;
-    let start_time_unix_nano_arr = get_timestamp_nanosecond_array(rb, consts::StartTimeUnixNano)?;
-    let time_unix_nano_arr = get_timestamp_nanosecond_array(rb, consts::TimeUnixNano)?;
-    let summary_count_arr = get_u64_array(rb, consts::SummaryCount)?;
-    let sum_arr = get_f64_array(rb, consts::SummarySum)?;
-    let quantile_arr = QuantileArrays::try_new(
-        rb.column_by_name(consts::SummaryQuantileValues)
-            .context(error::ColumnNotFoundSnafu {
-                name: consts::SummaryQuantileValues,
-            })?,
-    )?;
-    let flag_arr = get_u32_array(rb, consts::Flags)?;
+        let id_arr_opt = get_u32_array_opt(rb, consts::ID)?;
+        let delta_id_arr = get_u16_array(rb, consts::ParentID)?;
+        let start_time_unix_nano_arr =
+            get_timestamp_nanosecond_array(rb, consts::StartTimeUnixNano)?;
+        let time_unix_nano_arr = get_timestamp_nanosecond_array(rb, consts::TimeUnixNano)?;
+        let summary_count_arr = get_u64_array(rb, consts::SummaryCount)?;
+        let sum_arr = get_f64_array(rb, consts::SummarySum)?;
+        let quantile_arr =
+            QuantileArrays::try_new(rb.column_by_name(consts::SummaryQuantileValues).context(
+                error::ColumnNotFoundSnafu {
+                    name: consts::SummaryQuantileValues,
+                },
+            )?)?;
+        let flag_arr = get_u32_array(rb, consts::Flags)?;
 
-    for idx in 0..rb.num_rows() {
-        let delta = delta_id_arr.value_at_or_default(idx);
-        let parent_id = prev_parent_id + delta;
-        prev_parent_id = parent_id;
-        let nbdps = store.get_or_default(parent_id);
+        for idx in 0..rb.num_rows() {
+            let delta = delta_id_arr.value_at_or_default(idx);
+            let parent_id = prev_parent_id + delta;
+            prev_parent_id = parent_id;
+            let nbdps = store.get_or_default(parent_id);
 
-        let mut sdp = nbdps.append_and_get();
-        sdp.start_time_unix_nano = start_time_unix_nano_arr.value_at_or_default(idx) as u64;
-        sdp.time_unix_nano = time_unix_nano_arr.value_at_or_default(idx) as u64;
-        sdp.count = summary_count_arr.value_at_or_default(idx);
-        sdp.sum = sum_arr.value_at_or_default(idx);
-        if let Some(quantile) = quantile_arr.value_at(idx) {
-            sdp.quantile_values = quantile;
+            let mut sdp = nbdps.append_and_get();
+            sdp.start_time_unix_nano = start_time_unix_nano_arr.value_at_or_default(idx) as u64;
+            sdp.time_unix_nano = time_unix_nano_arr.value_at_or_default(idx) as u64;
+            sdp.count = summary_count_arr.value_at_or_default(idx);
+            sdp.sum = sum_arr.value_at_or_default(idx);
+            if let Some(quantile) = quantile_arr.value_at(idx) {
+                sdp.quantile_values = quantile;
+            }
+            sdp.flags = flag_arr.value_at_or_default(idx);
+            if let Some(id) = id_arr_opt.value_at(idx)
+                && let Some(attr) = attr_store.attribute_by_id(id)
+            {
+                sdp.attributes = attr.to_vec();
+            }
         }
-        sdp.flags = flag_arr.value_at_or_default(idx);
-        if let Some(id) = id_arr_opt.value_at(idx)
-            && let Some(attr) = attr_store.attribute_by_id(id)
-        {
-            sdp.attributes = attr.to_vec();
-        }
+
+        Ok(store)
     }
-
-    Ok(store)
 }
 
 struct QuantileArrays<'a> {
