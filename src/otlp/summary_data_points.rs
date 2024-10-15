@@ -7,9 +7,7 @@ use crate::otlp::attribute_store::AttributeStore;
 use crate::otlp::data_point_store::SummaryDataPointsStore;
 use crate::otlp::metric::AppendAndGet;
 use crate::schema::consts;
-use arrow::array::{
-    Array,  ArrayRef, Float64Array, ListArray, RecordBatch, StructArray,
-};
+use arrow::array::{Array, ArrayRef, Float64Array, ListArray, RecordBatch, StructArray};
 use opentelemetry_proto::tonic::metrics::v1::summary_data_point::ValueAtQuantile;
 use snafu::OptionExt;
 
@@ -82,18 +80,19 @@ impl<'a> QuantileArrays<'a> {
             .with_context(|| error::InvalidQuantileTypeSnafu {
                 message: array.data_type().to_string(),
             })?;
-        let downcast_f64 = |struct_array: &'a StructArray, name: &str|->error::Result<&'a Float64Array> {
-            let field_column = struct_array
-                .column_by_name(name)
-                .context(error::ColumnNotFoundSnafu { name })?;
+        let downcast_f64 =
+            |struct_array: &'a StructArray, name: &str| -> error::Result<&'a Float64Array> {
+                let field_column = struct_array
+                    .column_by_name(name)
+                    .context(error::ColumnNotFoundSnafu { name })?;
 
-            field_column
-                .as_any()
-                .downcast_ref::<Float64Array>()
-                .with_context(|| error::InvalidQuantileTypeSnafu {
-                    message: field_column.data_type().to_string(),
-                })
-        };
+                field_column
+                    .as_any()
+                    .downcast_ref::<Float64Array>()
+                    .with_context(|| error::InvalidQuantileTypeSnafu {
+                        message: field_column.data_type().to_string(),
+                    })
+            };
 
         let quantile = downcast_f64(struct_array, consts::SummaryQuantile)?;
         let value = downcast_f64(struct_array, consts::SummaryValue)?;

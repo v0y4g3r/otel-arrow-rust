@@ -1,5 +1,10 @@
 use crate::error;
-use arrow::array::{Array, ArrayAccessor, ArrowPrimitiveType, BinaryArray, BooleanArray, DictionaryArray, Float32Array, Float64Array, Int16Array, Int32Array, Int64Array, Int8Array, PrimitiveArray, RecordBatch, StringArray, TimestampNanosecondArray, UInt16Array, UInt32Array, UInt64Array, UInt8Array};
+use arrow::array::{
+    Array, ArrayAccessor, ArrowPrimitiveType, BinaryArray, BooleanArray, DictionaryArray,
+    Float32Array, Float64Array, Int16Array, Int32Array, Int64Array, Int8Array, PrimitiveArray,
+    RecordBatch, StringArray, TimestampNanosecondArray, UInt16Array, UInt32Array, UInt64Array,
+    UInt8Array,
+};
 use arrow::datatypes::ArrowNativeType;
 use arrow::datatypes::{ArrowDictionaryKeyType, TimeUnit};
 use paste::paste;
@@ -56,15 +61,13 @@ impl NullableArrayAccessor for &BooleanArray {
     }
 }
 
-impl NullableArrayAccessor for Option<&BooleanArray>
-{
+impl NullableArrayAccessor for Option<&BooleanArray> {
     type Native = bool;
 
     fn value_at(&self, idx: usize) -> Option<Self::Native> {
         self.as_ref().and_then(|a| a.value_at(idx))
     }
 }
-
 
 impl<'a> NullableArrayAccessor for &StringArray {
     type Native = String;
@@ -89,7 +92,6 @@ impl<'a> NullableArrayAccessor for &BinaryArray {
         }
     }
 }
-
 
 macro_rules! impl_downcast {
     ($suffix:ident, $data_type:expr, $array_type:ident) => {
@@ -147,7 +149,6 @@ impl_downcast!(
     Timestamp(TimeUnit::Nanosecond, None),
     TimestampNanosecondArray
 );
-
 
 trait NullableInt64ArrayAccessor {
     fn i64_at(&self, idx: usize) -> error::Result<Option<i64>>;

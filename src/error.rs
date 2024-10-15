@@ -84,5 +84,13 @@ pub enum Error {
         message: String,
         #[snafu(implicit)]
         location: Location,
-    }
+    },
+
+    #[snafu(display("Invalid List array data type, expect {}, actual {}", expect, actual))]
+    InvalidListArray {
+        expect: DataType,
+        actual: DataType,
+        #[snafu(implicit)]
+        location: Location,
+    },
 }

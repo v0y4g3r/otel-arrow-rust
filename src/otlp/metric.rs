@@ -5,7 +5,7 @@ use crate::arrays::{
 use crate::error;
 use crate::otlp::related_data::RelatedData;
 use crate::schema::consts;
-use crate::schema::consts::{DroppedAttributesCount};
+use crate::schema::consts::DroppedAttributesCount;
 use arrow::array::{
     Array, BooleanArray, Int32Array, RecordBatch, StringArray, StructArray, UInt16Array,
     UInt32Array, UInt8Array,
@@ -20,12 +20,12 @@ use snafu::{OptionExt, ResultExt};
 #[derive(Copy, Clone, Eq, PartialEq, Debug, TryFromPrimitive)]
 #[repr(u8)]
 pub enum MetricType {
-    Empty=0,
-    Gauge=1,
-    Sum=2,
-    Histogram=3,
-    ExponentialHistogram=4,
-    Summary=5,
+    Empty = 0,
+    Gauge = 1,
+    Sum = 2,
+    Histogram = 3,
+    ExponentialHistogram = 4,
+    Summary = 5,
 }
 
 struct ResourceArrays<'a> {
@@ -255,9 +255,10 @@ pub fn metrics_from(
         let delta_id = metrics_arrays.id.value_at_or_default(idx);
         let metric_id = related_data.metric_id_from_delta(delta_id);
         let metric_type_val = metrics_arrays.metric_type.value_at_or_default(idx);
-        let metric_type = MetricType::try_from(metric_type_val).context(error::UnrecognizedMetricTypeSnafu {
-            metric_type: metric_type_val,
-        })?;
+        let metric_type =
+            MetricType::try_from(metric_type_val).context(error::UnrecognizedMetricTypeSnafu {
+                metric_type: metric_type_val,
+            })?;
 
         let aggregation_temporality = metrics_arrays
             .aggregation_temporality
@@ -269,13 +270,19 @@ pub fn metrics_from(
 
         match metric_type {
             MetricType::Gauge => {
-                let dps = related_data.number_data_points_store.get_or_default(metric_id);
-                current_metric.data = Some(metric::Data::Gauge(opentelemetry_proto::tonic::metrics::v1::Gauge {
-                    data_points: std::mem::take(dps),
-                }));
+                let dps = related_data
+                    .number_data_points_store
+                    .get_or_default(metric_id);
+                current_metric.data = Some(metric::Data::Gauge(
+                    opentelemetry_proto::tonic::metrics::v1::Gauge {
+                        data_points: std::mem::take(dps),
+                    },
+                ));
             }
             MetricType::Sum => {
-                let dps = related_data.number_data_points_store.get_or_default(metric_id);
+                let dps = related_data
+                    .number_data_points_store
+                    .get_or_default(metric_id);
                 let sum = opentelemetry_proto::tonic::metrics::v1::Sum {
                     data_points: std::mem::take(dps),
                     aggregation_temporality,
@@ -284,7 +291,9 @@ pub fn metrics_from(
                 current_metric.data = Some(metric::Data::Sum(sum));
             }
             MetricType::Histogram => {
-                let dps = related_data.histogram_data_points_store.get_or_default(metric_id);
+                let dps = related_data
+                    .histogram_data_points_store
+                    .get_or_default(metric_id);
                 let histogram = opentelemetry_proto::tonic::metrics::v1::Histogram {
                     data_points: std::mem::take(dps),
                     aggregation_temporality,
@@ -292,7 +301,9 @@ pub fn metrics_from(
                 current_metric.data = Some(metric::Data::Histogram(histogram));
             }
             MetricType::ExponentialHistogram => {
-                let dps = related_data.e_histogram_data_points_store.get_or_default(metric_id);
+                let dps = related_data
+                    .e_histogram_data_points_store
+                    .get_or_default(metric_id);
                 let e_histogram = opentelemetry_proto::tonic::metrics::v1::ExponentialHistogram {
                     data_points: std::mem::take(dps),
                     aggregation_temporality,
@@ -300,15 +311,15 @@ pub fn metrics_from(
                 current_metric.data = Some(metric::Data::ExponentialHistogram(e_histogram));
             }
             MetricType::Summary => {
-                let dps = related_data.summary_data_points_store.get_or_default(metric_id);
+                let dps = related_data
+                    .summary_data_points_store
+                    .get_or_default(metric_id);
                 let summary = opentelemetry_proto::tonic::metrics::v1::Summary {
                     data_points: std::mem::take(dps),
                 };
                 current_metric.data = Some(metric::Data::Summary(summary));
             }
-            MetricType::Empty => {
-                return error::EmptyMetricTypeSnafu.fail()
-            }
+            MetricType::Empty => return error::EmptyMetricTypeSnafu.fail(),
         }
     }
 

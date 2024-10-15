@@ -12,11 +12,9 @@
 
 use crate::decode::record_message::RecordMessage;
 use crate::error::Error;
-use crate::opentelemetry::arrow::{ArrowPayloadType,};
+use crate::opentelemetry::arrow::ArrowPayloadType;
 
-pub struct RelatedData {
-
-}
+pub struct RelatedData {}
 
 impl TryFrom<&[RecordMessage]> for RelatedData {
     type Error = Error;
@@ -59,8 +57,6 @@ impl TryFrom<&[RecordMessage]> for RelatedData {
                 ArrowPayloadType::SpanLinkAttrs => {}
             }
         }
-        Ok(Self{})
+        Ok(Self {})
     }
-
 }
-
