@@ -1,5 +1,6 @@
-use arrow::array::RecordBatch;
+use crate::decode::record_message::RecordMessage;
 use crate::error;
+use crate::opentelemetry::arrow::ArrowPayloadType;
 use crate::otlp::attribute_store::AttributeStore;
 use crate::otlp::data_point_store::{
     EHistogramDataPointsStore, HistogramDataPointsStore, NumberDataPointsStore,
@@ -38,10 +39,82 @@ impl RelatedData {
     }
 }
 
+pub fn from_record_messages(rbs: &[RecordMessage]) -> error::Result<(RelatedData, Option<usize>)> {
+    let mut related_data = RelatedData::default();
 
-pub fn from_record_batches(rbs: &[RecordBatch]) ->error::Result<RelatedData>{
-    let related_data = RelatedData::default();
+    // index for main metrics record.
+    let mut metrics_record_idx: Option<usize> = None;
 
+    let mut number_dp_idx: Option<usize> = None;
+    let mut summary_dp_idx: Option<usize> = None;
+    let mut histogram_dp_idx: Option<usize> = None;
+    let mut expHistogram_dp_idx: Option<usize> = None;
+    let mut number_dp_ex_idx: Option<usize> = None;
+    let mut histogram_dp_ex_idx: Option<usize> = None;
+    let mut expHistogram_dp_ex_idx: Option<usize> = None;
 
-    Ok(related_data)
+    for (idx, rm) in rbs.iter().enumerate() {
+        let payload_type = ArrowPayloadType::try_from(rm.payload_type).unwrap();
+        match payload_type {
+            ArrowPayloadType::Unknown => {
+                todo!("error")
+            }
+            ArrowPayloadType::ResourceAttrs => {
+                related_data.res_attr_map_store = AttributeStore::try_from(&rm.record)?;
+            }
+            ArrowPayloadType::ScopeAttrs => {
+                related_data.scope_attr_map_store = AttributeStore::try_from(&rm.record)?;
+            }
+            ArrowPayloadType::UnivariateMetrics => {
+                // this record is the main metrics record.
+                metrics_record_idx = Some(idx);
+            }
+            ArrowPayloadType::NumberDataPoints => {
+                number_dp_idx = Some(idx);
+            }
+            ArrowPayloadType::SummaryDataPoints => {
+                summary_dp_idx = Some(idx);
+            }
+            ArrowPayloadType::HistogramDataPoints => {
+                histogram_dp_idx = Some(idx);
+            }
+            ArrowPayloadType::ExpHistogramDataPoints => {
+                expHistogram_dp_idx = Some(idx);
+            }
+            ArrowPayloadType::NumberDpAttrs => {
+                related_data.number_d_p_attrs_store = AttributeStore::try_from(&rm.record)?;
+            }
+            ArrowPayloadType::SummaryDpAttrs => {
+                related_data.summary_attrs_store = AttributeStore::try_from(&rm.record)?;
+            }
+            ArrowPayloadType::HistogramDpAttrs => {
+                related_data.histogram_attrs_store = AttributeStore::try_from(&rm.record)?;
+            }
+            ArrowPayloadType::ExpHistogramDpAttrs => {
+                related_data.exp_histogram_attrs_store = AttributeStore::try_from(&rm.record)?;
+            }
+            ArrowPayloadType::NumberDpExemplars => {
+                number_dp_ex_idx = Some(idx);
+            }
+            ArrowPayloadType::HistogramDpExemplars => {
+                histogram_dp_ex_idx = Some(idx);
+            }
+            ArrowPayloadType::ExpHistogramDpExemplars => {
+                expHistogram_dp_ex_idx = Some(idx);
+            }
+            ArrowPayloadType::NumberDpExemplarAttrs => {
+                related_data.number_d_p_exemplar_attrs_store =
+                    AttributeStore::try_from(&rm.record)?;
+            }
+            ArrowPayloadType::HistogramDpExemplarAttrs => {
+                related_data.histogram_exemplar_attrs_store = AttributeStore::try_from(&rm.record)?;
+            }
+            ArrowPayloadType::ExpHistogramDpExemplarAttrs => {
+                related_data.exp_histogram_exemplar_attrs_store =
+                    AttributeStore::try_from(&rm.record)?;
+            }
+            _ => unimplemented!(),
+        }
+    }
+    Ok((related_data, metrics_record_idx))
 }

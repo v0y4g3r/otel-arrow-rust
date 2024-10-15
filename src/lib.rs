@@ -18,6 +18,7 @@ pub(crate) mod arrays;
 mod decode;
 mod error;
 mod otlp;
+#[allow(dead_code)]
 mod schema;
 
 #[path = ""]

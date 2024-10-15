@@ -11,4 +11,4 @@
 // limitations under the License.
 
 mod decoder;
-mod record_message;
+pub mod record_message;

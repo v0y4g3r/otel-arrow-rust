@@ -52,8 +52,36 @@ pub enum Error {
     },
 
     #[snafu(display("Currently attribute store value type: {} is not supported", type_name))]
-    UnsupportedAttributeValue{
+    UnsupportedAttributeValue {
         type_name: String,
+        #[snafu(implicit)]
+        location: Location,
+    },
+
+    #[snafu(display("Invalid exemplar data, message: {}", message))]
+    InvalidExemplarData {
+        message: String,
+        #[snafu(implicit)]
+        location: Location,
+    },
+
+    #[snafu(display("Invalid span id in exemplar data, message: {}", message))]
+    InvalidSpanId {
+        message: String,
+        #[snafu(implicit)]
+        location: Location,
+    },
+
+    #[snafu(display("Invalid trace id in exemplar data, message: {}", message))]
+    InvalidTraceId {
+        message: String,
+        #[snafu(implicit)]
+        location: Location,
+    },
+
+    #[snafu(display("Invalid trace id in exemplar data, message: {}", message))]
+    InvalidQuantileType {
+        message: String,
         #[snafu(implicit)]
         location: Location,
     }

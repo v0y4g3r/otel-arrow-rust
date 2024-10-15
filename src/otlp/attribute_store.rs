@@ -12,7 +12,6 @@ use opentelemetry_proto::tonic::common::v1::any_value::Value;
 use opentelemetry_proto::tonic::common::v1::{AnyValue, KeyValue};
 use snafu::{OptionExt, ResultExt};
 use std::collections::HashMap;
-use std::hash::Hash;
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug, TryFromPrimitive)]
 #[repr(u8)]

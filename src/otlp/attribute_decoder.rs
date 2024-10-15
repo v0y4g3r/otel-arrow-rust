@@ -1,10 +1,10 @@
 // https://github.com/open-telemetry/otel-arrow/blob/985aa1500a012859cec44855e187eacf46eda7c8/pkg/otel/common/arrow/attributes.go#L40
 
 use crate::arrays::NullableArrayAccessor;
-use arrow::array::{Array, UInt16Array, UInt32Array};
+use arrow::array::{UInt16Array, UInt32Array};
 use arrow::datatypes::DataType;
 use num_enum::TryFromPrimitive;
-use opentelemetry_proto::tonic::common::v1::{any_value, AnyValue};
+use opentelemetry_proto::tonic::common::v1::any_value;
 use std::hash::Hash;
 
 pub trait ParentId: Copy + Hash + Eq + Default {
@@ -15,7 +15,6 @@ pub trait ParentId: Copy + Hash + Eq + Default {
 
     fn new_decoder() -> AttrsParentIdDecoder<Self>;
 }
-
 
 impl ParentId for u16 {
     type Array = UInt16Array;
@@ -91,28 +90,28 @@ impl<T> AttrsParentIdDecoder<T>
 where
     T: ParentId,
 {
-    pub fn decode(&mut self, deltaOrParentID: T, key: &str, value: &any_value::Value) -> T {
+    pub fn decode(&mut self, delta_or_parent_id: T, key: &str, value: &any_value::Value) -> T {
         match self.encoding_type {
             // Plain encoding
-            ParentIdEncoding::ParentIdNoEncoding => deltaOrParentID,
-            /// Simply delta
+            ParentIdEncoding::ParentIdNoEncoding => delta_or_parent_id,
+            // Simply delta
             ParentIdEncoding::ParentIdDeltaEncoding => {
-                let decode_parent_id = self.prev_parent_id.add(deltaOrParentID);
+                let decode_parent_id = self.prev_parent_id.add(delta_or_parent_id);
                 self.prev_parent_id = decode_parent_id;
                 decode_parent_id
             }
-            /// Key-value scoped delta.
+            // Key-value scoped delta.
             ParentIdEncoding::ParentIdDeltaGroupEncoding => {
                 if self.prev_key.as_deref() == Some(key) && self.prev_value.as_ref() == Some(&value)
                 {
-                    let parent_id = self.prev_parent_id.add(deltaOrParentID);
+                    let parent_id = self.prev_parent_id.add(delta_or_parent_id);
                     self.prev_parent_id = parent_id;
                     parent_id
                 } else {
                     self.prev_key = Some(key.to_string());
                     self.prev_value = Some(value.clone());
-                    self.prev_parent_id = deltaOrParentID;
-                    deltaOrParentID
+                    self.prev_parent_id = delta_or_parent_id;
+                    delta_or_parent_id
                 }
             }
         }
