@@ -21,19 +21,19 @@ impl SummaryDataPointsStore {
         let mut prev_parent_id = 0;
 
         let id_arr_opt = get_u32_array_opt(rb, consts::ID)?;
-        let delta_id_arr = get_u16_array(rb, consts::ParentID)?;
+        let delta_id_arr = get_u16_array(rb, consts::PARENT_ID)?;
         let start_time_unix_nano_arr =
-            get_timestamp_nanosecond_array(rb, consts::StartTimeUnixNano)?;
-        let time_unix_nano_arr = get_timestamp_nanosecond_array(rb, consts::TimeUnixNano)?;
-        let summary_count_arr = get_u64_array(rb, consts::SummaryCount)?;
-        let sum_arr = get_f64_array(rb, consts::SummarySum)?;
+            get_timestamp_nanosecond_array(rb, consts::START_TIME_UNIX_NANO)?;
+        let time_unix_nano_arr = get_timestamp_nanosecond_array(rb, consts::TIME_UNIX_NANO)?;
+        let summary_count_arr = get_u64_array(rb, consts::SUMMARY_COUNT)?;
+        let sum_arr = get_f64_array(rb, consts::SUMMARY_SUM)?;
         let quantile_arr =
-            QuantileArrays::try_new(rb.column_by_name(consts::SummaryQuantileValues).context(
+            QuantileArrays::try_new(rb.column_by_name(consts::SUMMARY_QUANTILE_VALUES).context(
                 error::ColumnNotFoundSnafu {
-                    name: consts::SummaryQuantileValues,
+                    name: consts::SUMMARY_QUANTILE_VALUES,
                 },
             )?)?;
-        let flag_arr = get_u32_array(rb, consts::Flags)?;
+        let flag_arr = get_u32_array(rb, consts::FLAGS)?;
 
         for idx in 0..rb.num_rows() {
             let delta = delta_id_arr.value_at_or_default(idx);
@@ -97,8 +97,8 @@ impl<'a> QuantileArrays<'a> {
                     })
             };
 
-        let quantile = downcast_f64(struct_array, consts::SummaryQuantile)?;
-        let value = downcast_f64(struct_array, consts::SummaryValue)?;
+        let quantile = downcast_f64(struct_array, consts::SUMMARY_QUANTILE)?;
+        let value = downcast_f64(struct_array, consts::SUMMARY_VALUE)?;
         assert_eq!(value.len(), quantile.len());
         Ok(Self {
             list_array: list,

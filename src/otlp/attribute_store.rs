@@ -1,3 +1,15 @@
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 use crate::arrays::{
     get_binary_array, get_bool_array, get_f64_array, get_i64_array, get_string_array, get_u8_array,
     NullableArrayAccessor,
@@ -26,6 +38,9 @@ pub enum AttributeValueType {
     Bytes = 7,
 }
 
+pub type Attribute32Store = AttributeStore<u32>;
+pub type Attribute16Store = AttributeStore<u16>;
+
 #[derive(Default)]
 pub struct AttributeStore<T> {
     last_id: T,
@@ -51,13 +66,13 @@ where
     fn try_from(rb: &RecordBatch) -> Result<Self, Self::Error> {
         let mut store = Self::default();
 
-        let key_arr = get_string_array(rb, consts::Name)?;
-        let value_type_arr = get_u8_array(rb, consts::AttributeType)?;
-        let value_str_arr = get_string_array(rb, consts::AttributeStr)?;
-        let value_int_arr = get_i64_array(rb, consts::AttributeInt)?;
-        let value_double_arr = get_f64_array(rb, consts::AttributeDouble)?;
-        let value_bool_arr = get_bool_array(rb, consts::AttributeBool)?;
-        let value_bytes_arr = get_binary_array(rb, consts::AttributeBytes)?;
+        let key_arr = get_string_array(rb, consts::NAME)?;
+        let value_type_arr = get_u8_array(rb, consts::ATTRIBUTE_TYPE)?;
+        let value_str_arr = get_string_array(rb, consts::ATTRIBUTE_STR)?;
+        let value_int_arr = get_i64_array(rb, consts::ATTRIBUTE_INT)?;
+        let value_double_arr = get_f64_array(rb, consts::ATTRIBUTE_DOUBLE)?;
+        let value_bool_arr = get_bool_array(rb, consts::ATTRIBUTE_BOOL)?;
+        let value_bytes_arr = get_binary_array(rb, consts::ATTRIBUTE_BYTES)?;
 
         for idx in 0..rb.num_rows() {
             let key = key_arr.value_at_or_default(idx);
@@ -93,13 +108,13 @@ where
 
             // Parse potentially delta encoded parent id field.
             let parent_id_arr =
-                rb.column_by_name(consts::ParentID)
+                rb.column_by_name(consts::PARENT_ID)
                     .context(error::ColumnNotFoundSnafu {
-                        name: consts::ParentID,
+                        name: consts::PARENT_ID,
                     })?;
             let parent_id_arr = parent_id_arr.as_any().downcast_ref::<T::Array>().context(
                 error::ColumnDataTypeMismatchSnafu {
-                    name: consts::ParentID,
+                    name: consts::PARENT_ID,
                     expect: T::arrow_data_type(),
                     actual: parent_id_arr.data_type().clone(),
                 },
@@ -129,7 +144,7 @@ trait FindOrAppendValue<V> {
 impl FindOrAppendValue<Option<AnyValue>> for Vec<KeyValue> {
     fn find_or_append(&mut self, key: &str) -> &mut Option<AnyValue> {
         // It's a workaround for https://github.com/rust-lang/rust/issues/51545
-        if let Some((idx, _)) = self.iter().enumerate().find(|(idx, kv)| kv.key == key) {
+        if let Some((idx, _)) = self.iter().enumerate().find(|(_, kv)| kv.key == key) {
             return &mut self[idx].value;
         }
 

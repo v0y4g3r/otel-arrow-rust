@@ -21,16 +21,16 @@ impl NumberDataPointsStore {
         let mut store = NumberDataPointsStore::default();
 
         let id_array = get_u32_array(rb, consts::ID)?;
-        let parent_id_array = get_u16_array(rb, consts::ParentID)?;
+        let parent_id_array = get_u16_array(rb, consts::PARENT_ID)?;
         let start_time_unix_nano_array =
-            get_timestamp_nanosecond_array(rb, consts::StartTimeUnixNano)?;
-        let time_unix_nano_array = get_timestamp_nanosecond_array(rb, consts::TimeUnixNano)?;
+            get_timestamp_nanosecond_array(rb, consts::START_TIME_UNIX_NANO)?;
+        let time_unix_nano_array = get_timestamp_nanosecond_array(rb, consts::TIME_UNIX_NANO)?;
 
         // todo(hl): The receiver code of otelarrow also handles dictionary arrays for int_value field
         // but the exporter side seems only encode to Int64Array: https://github.com/open-telemetry/otel-arrow/blob/79b50d99dde17c5bb085a0204db406d8f6ad880b/pkg/otel/metrics/arrow/number_data_point.go#L138
-        let int_value = get_i64_array(rb, consts::IntValue)?;
-        let double_value = get_f64_array(rb, consts::DoubleValue)?;
-        let flags = get_u32_array(rb, consts::Flags)?;
+        let int_value = get_i64_array(rb, consts::INT_VALUE)?;
+        let double_value = get_f64_array(rb, consts::DOUBLE_VALUE)?;
+        let flags = get_u32_array(rb, consts::FLAGS)?;
 
         let mut last_id = 0;
         let mut prev_parent_id = 0;

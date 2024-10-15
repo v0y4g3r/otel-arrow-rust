@@ -33,12 +33,12 @@ impl ExemplarsStore {
             ExemplarParentIdDecoder::new(ParentIdEncoding::ParentIdDeltaGroupEncoding);
 
         let id_arr_opt = get_u32_array_opt(rb, consts::ID)?;
-        let int_value_arr = get_i64_array(rb, consts::IntValue)?;
-        let double_value_arr = get_f64_array(rb, consts::DoubleValue)?;
-        let parent_id_arr = get_u32_array(rb, consts::ParentID)?;
-        let time_unix_nano_arr = get_timestamp_nanosecond_array(rb, consts::TimeUnixNano)?;
-        let span_id_arr = get_binary_array(rb, consts::SpanId)?;
-        let trace_id_arr = get_binary_array(rb, consts::TraceId)?;
+        let int_value_arr = get_i64_array(rb, consts::INT_VALUE)?;
+        let double_value_arr = get_f64_array(rb, consts::DOUBLE_VALUE)?;
+        let parent_id_arr = get_u32_array(rb, consts::PARENT_ID)?;
+        let time_unix_nano_arr = get_timestamp_nanosecond_array(rb, consts::TIME_UNIX_NANO)?;
+        let span_id_arr = get_binary_array(rb, consts::SPAN_ID)?;
+        let trace_id_arr = get_binary_array(rb, consts::TRACE_ID)?;
 
         for idx in 0..rb.num_rows() {
             let int_value = int_value_arr.value_at(idx);

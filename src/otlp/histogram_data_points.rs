@@ -16,7 +16,7 @@ use crate::arrays::{
 };
 use crate::error;
 use crate::otlp::attribute_store::AttributeStore;
-use crate::otlp::data_point_store::{HistogramDataPointsStore, NumberDataPointsStore};
+use crate::otlp::data_point_store::{HistogramDataPointsStore};
 use crate::otlp::exemplar::ExemplarsStore;
 use crate::otlp::metric::AppendAndGet;
 use crate::schema::consts;
@@ -36,27 +36,27 @@ impl HistogramDataPointsStore {
         let mut store = HistogramDataPointsStore::default();
 
         let id_array_opt = get_u32_array_opt(rb, consts::ID)?;
-        let delta_id = get_u16_array(rb, consts::ParentID)?;
-        let start_time_unix_nano = get_timestamp_nanosecond_array(rb, consts::StartTimeUnixNano)?;
-        let time_unix_nano = get_timestamp_nanosecond_array(rb, consts::TimeUnixNano)?;
-        let histogram_count = get_u64_array(rb, consts::HistogramCount)?;
-        let sum = get_f64_array_opt(rb, consts::HistogramSum)?;
+        let delta_id = get_u16_array(rb, consts::PARENT_ID)?;
+        let start_time_unix_nano = get_timestamp_nanosecond_array(rb, consts::START_TIME_UNIX_NANO)?;
+        let time_unix_nano = get_timestamp_nanosecond_array(rb, consts::TIME_UNIX_NANO)?;
+        let histogram_count = get_u64_array(rb, consts::HISTOGRAM_COUNT)?;
+        let sum = get_f64_array_opt(rb, consts::HISTOGRAM_SUM)?;
         let bucket_counts_arr: ListValueAccessor<UInt64Type> =
-            ListValueAccessor::try_new(rb.column_by_name(consts::HistogramBucketCounts).context(
+            ListValueAccessor::try_new(rb.column_by_name(consts::HISTOGRAM_BUCKET_COUNTS).context(
                 error::ColumnNotFoundSnafu {
-                    name: consts::HistogramBucketCounts,
+                    name: consts::HISTOGRAM_BUCKET_COUNTS,
                 },
             )?)?;
         let explicit_bounds_arr: ListValueAccessor<Float64Type> = ListValueAccessor::try_new(
-            rb.column_by_name(consts::HistogramExplicitBounds).context(
+            rb.column_by_name(consts::HISTOGRAM_EXPLICIT_BOUNDS).context(
                 error::ColumnNotFoundSnafu {
-                    name: consts::HistogramExplicitBounds,
+                    name: consts::HISTOGRAM_EXPLICIT_BOUNDS,
                 },
             )?,
         )?;
-        let flags_arr = get_u32_array(rb, consts::Flags)?;
-        let max_arr = get_f64_array_opt(rb, consts::HistogramMax)?;
-        let min_arr = get_f64_array_opt(rb, consts::HistogramMin)?;
+        let flags_arr = get_u32_array(rb, consts::FLAGS)?;
+        let max_arr = get_f64_array_opt(rb, consts::HISTOGRAM_MAX)?;
+        let min_arr = get_f64_array_opt(rb, consts::HISTOGRAM_MIN)?;
 
         let mut prev_parent_id = 0;
         let mut last_id = 0;
@@ -99,7 +99,7 @@ impl HistogramDataPointsStore {
 }
 
 /// Helper to access the element in a list array.
-struct ListValueAccessor<'a, T: ArrowPrimitiveType> {
+pub struct ListValueAccessor<'a, T: ArrowPrimitiveType> {
     list: &'a ListArray,
     value: &'a PrimitiveArray<T>,
 }
@@ -108,7 +108,7 @@ impl<'a, T> ListValueAccessor<'a, T>
 where
     T: ArrowPrimitiveType,
 {
-    fn try_new(list: &'a ArrayRef) -> error::Result<Self> {
+    pub fn try_new(list: &'a ArrayRef) -> error::Result<Self> {
         let list = list.as_any().downcast_ref::<ListArray>().with_context(|| {
             error::InvalidListArraySnafu {
                 //todo: maybe set the field name here.
@@ -116,6 +116,10 @@ where
                 actual: list.data_type().clone(),
             }
         })?;
+        Self::try_new_from_list(list)
+    }
+
+    pub fn try_new_from_list(list: &'a ListArray) -> error::Result<Self> {
         let value_array = list.values();
         let value = value_array
             .as_any()
@@ -128,7 +132,7 @@ where
         Ok(Self { list, value })
     }
 
-    fn value_at_opt(&self, idx: usize) -> Option<Vec<T::Native>> {
+    pub fn value_at_opt(&self, idx: usize) -> Option<Vec<T::Native>> {
         if !self.list.is_valid(idx) {
             return None;
         }

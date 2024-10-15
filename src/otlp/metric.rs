@@ -1,3 +1,15 @@
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 use crate::arrays::{
     get_bool_array, get_i32_array, get_string_array, get_u16_array, get_u8_array,
     NullableArrayAccessor,
@@ -5,7 +17,7 @@ use crate::arrays::{
 use crate::error;
 use crate::otlp::related_data::RelatedData;
 use crate::schema::consts;
-use crate::schema::consts::DroppedAttributesCount;
+use crate::schema::consts::DROPPED_ATTRIBUTES_COUNT;
 use arrow::array::{
     Array, BooleanArray, Int32Array, RecordBatch, StringArray, StructArray, UInt16Array,
     UInt32Array, UInt8Array,
@@ -39,16 +51,16 @@ impl<'a> TryFrom<&'a RecordBatch> for ResourceArrays<'a> {
 
     fn try_from(rb: &'a RecordBatch) -> Result<Self, Self::Error> {
         let struct_array =
-            rb.column_by_name(consts::Resource)
+            rb.column_by_name(consts::RESOURCE)
                 .context(error::ColumnNotFoundSnafu {
-                    name: consts::Resource,
+                    name: consts::RESOURCE,
                 })?;
 
         let struct_array = struct_array
             .as_any()
             .downcast_ref::<StructArray>()
             .with_context(|| error::ColumnDataTypeMismatchSnafu {
-                name: consts::Resource,
+                name: consts::RESOURCE,
                 expect: DataType::Struct(Fields::default()), //todo
                 actual: struct_array.data_type().clone(),
             })?;
@@ -60,13 +72,13 @@ impl<'a> TryFrom<&'a RecordBatch> for ResourceArrays<'a> {
             .downcast_ref::<UInt16Array>()
             .unwrap();
         let dropped_attributes_count = struct_array
-            .column_by_name(DroppedAttributesCount)
+            .column_by_name(DROPPED_ATTRIBUTES_COUNT)
             .unwrap()
             .as_any()
             .downcast_ref::<UInt32Array>()
             .unwrap();
         let schema_url = struct_array
-            .column_by_name(consts::SchemaUrl)
+            .column_by_name(consts::SCHEMA_URL)
             .unwrap()
             .as_any()
             .downcast_ref::<StringArray>()
@@ -92,32 +104,32 @@ impl<'a> TryFrom<&'a RecordBatch> for ScopeArrays<'a> {
 
     fn try_from(rb: &'a RecordBatch) -> Result<Self, Self::Error> {
         let scope_array = rb
-            .column_by_name(consts::Scope)
+            .column_by_name(consts::SCOPE)
             .context(error::ColumnNotFoundSnafu {
-                name: consts::Scope,
+                name: consts::SCOPE,
             })?;
         let scope_array = scope_array
             .as_any()
             .downcast_ref::<StructArray>()
             .with_context(|| error::ColumnDataTypeMismatchSnafu {
-                name: consts::Scope,
+                name: consts::SCOPE,
                 expect: DataType::Struct(Fields::default()),
                 actual: scope_array.data_type().clone(),
             })?;
         let name = scope_array
-            .column_by_name(consts::Name)
+            .column_by_name(consts::NAME)
             .unwrap()
             .as_any()
             .downcast_ref::<StringArray>()
             .unwrap();
         let version = scope_array
-            .column_by_name(consts::Version)
+            .column_by_name(consts::VERSION)
             .unwrap()
             .as_any()
             .downcast_ref::<StringArray>()
             .unwrap();
         let dropped_attributes_count = scope_array
-            .column_by_name(consts::DroppedAttributesCount)
+            .column_by_name(consts::DROPPED_ATTRIBUTES_COUNT)
             .unwrap()
             .as_any()
             .downcast_ref::<UInt32Array>()
@@ -154,13 +166,13 @@ impl<'a> TryFrom<&'a RecordBatch> for MetricsArrays<'a> {
 
     fn try_from(rb: &'a RecordBatch) -> Result<Self, Self::Error> {
         let id = get_u16_array(rb, consts::ID)?;
-        let metric_type = get_u8_array(rb, consts::MetricType)?;
-        let name = get_string_array(rb, consts::Name)?;
-        let description = get_string_array(rb, consts::Description)?;
-        let schema_url = get_string_array(rb, consts::SchemaUrl)?;
-        let unit = get_string_array(rb, consts::Unit)?;
-        let aggregation_temporality = get_i32_array(rb, consts::AggregationTemporality)?;
-        let is_monotonic = get_bool_array(rb, consts::IsMonotonic)?;
+        let metric_type = get_u8_array(rb, consts::METRIC_TYPE)?;
+        let name = get_string_array(rb, consts::NAME)?;
+        let description = get_string_array(rb, consts::DESCRIPTION)?;
+        let schema_url = get_string_array(rb, consts::SCHEMA_URL)?;
+        let unit = get_string_array(rb, consts::UNIT)?;
+        let aggregation_temporality = get_i32_array(rb, consts::AGGREGATION_TEMPORALITY)?;
+        let is_monotonic = get_bool_array(rb, consts::IS_MONOTONIC)?;
         Ok(Self {
             id,
             metric_type,
@@ -330,31 +342,31 @@ fn scope_arrays_from_record_batch(
     rb: &RecordBatch,
 ) -> error::Result<(&StringArray, &StringArray, &UInt32Array, &UInt16Array)> {
     let scope_array = rb
-        .column_by_name(consts::Scope)
+        .column_by_name(consts::SCOPE)
         .context(error::ColumnNotFoundSnafu {
-            name: consts::Scope,
+            name: consts::SCOPE,
         })?;
     let scope_array = scope_array
         .as_any()
         .downcast_ref::<StructArray>()
         .with_context(|| error::ColumnDataTypeMismatchSnafu {
-            name: consts::Scope,
+            name: consts::SCOPE,
             expect: DataType::Struct(Fields::default()),
             actual: scope_array.data_type().clone(),
         })?;
     let name_array = scope_array
-        .column_by_name(consts::Name)
+        .column_by_name(consts::NAME)
         .unwrap()
         .as_any()
         .downcast_ref::<StringArray>()
         .unwrap();
     let version_array = scope_array
-        .column_by_name(consts::Version)
+        .column_by_name(consts::VERSION)
         .unwrap()
         .as_any()
         .downcast_ref::<StringArray>();
     let droppped_attributes_count_array = scope_array
-        .column_by_name(consts::DroppedAttributesCount)
+        .column_by_name(consts::DROPPED_ATTRIBUTES_COUNT)
         .unwrap()
         .as_any()
         .downcast_ref::<UInt32Array>()
