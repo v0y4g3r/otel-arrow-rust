@@ -19,6 +19,7 @@ use arrow::array::RecordBatch;
 use arrow::error::ArrowError;
 use arrow::ipc::reader::StreamReader;
 use opentelemetry_proto::tonic::collector::metrics::v1::ExportMetricsServiceRequest;
+use snafu::{ensure, OptionExt, ResultExt};
 use std::collections::HashMap;
 use std::io::{Cursor, Read};
 use std::sync::{Arc, Mutex};
@@ -48,7 +49,8 @@ impl StreamConsumer {
     fn new(payload: ArrowPayloadType, initial_bytes: Vec<u8>) -> error::Result<Self> {
         let data = Arc::new(Mutex::new(Cursor::new(initial_bytes)));
         let shared_reader = SharedReader { data: data.clone() };
-        let stream_reader = StreamReader::try_new(shared_reader, None).unwrap();
+        let stream_reader =
+            StreamReader::try_new(shared_reader, None).context(error::BuildStreamReaderSnafu)?;
         Ok(Self {
             payload_type: payload,
             stream_reader,
@@ -75,7 +77,8 @@ impl Consumer {
                 r#type,
                 record,
             } = payload;
-            let payload_type = ArrowPayloadType::try_from(r#type).unwrap();
+            let payload_type = ArrowPayloadType::try_from(r#type)
+                .map_err(|_| error::UnsupportedPayloadTypeSnafu { actual: r#type }.build())?;
 
             let stream_consumer = match self.stream_consumers.get_mut(&schema_id) {
                 None => {
@@ -89,7 +92,7 @@ impl Consumer {
                     self.stream_consumers = new_stream_consumer;
                     self.stream_consumers
                         .entry(schema_id.clone())
-                        .or_insert(StreamConsumer::new(payload_type, record).unwrap())
+                        .or_insert(StreamConsumer::new(payload_type, record)?)
                 }
                 Some(s) => {
                     // stream consumer exists for given schema id, just reset the bytes.
@@ -100,7 +103,7 @@ impl Consumer {
 
             if let Some(rs) = stream_consumer.next() {
                 // the encoder side ensures there should be only one record here.
-                let record = rs.unwrap();
+                let record = rs.context(error::ReadRecordBatchSnafu)?;
                 records.push(RecordMessage {
                     batch_id: bar.batch_id,
                     schema_id,
@@ -119,18 +122,20 @@ impl Consumer {
         &mut self,
         records: &mut BatchArrowRecords,
     ) -> error::Result<ExportMetricsServiceRequest> {
-        if records.arrow_payloads.is_empty() {
-            panic!()
-        }
+        ensure!(!records.arrow_payloads.is_empty(), error::EmptyBatchSnafu);
 
         let main_record_type = records.arrow_payloads[0].r#type;
-        let payload_type = ArrowPayloadType::try_from(main_record_type).unwrap();
+        let payload_type = ArrowPayloadType::try_from(main_record_type).map_err(|_|
+            error::UnsupportedPayloadTypeSnafu {
+                actual: main_record_type,
+            }.build(),
+        )?;
         match payload_type {
             ArrowPayloadType::UnivariateMetrics => {
                 let record_message = self.consume_bar(records)?;
                 let (mut related_data, metric_record) =
                     RelatedData::from_record_messages(&record_message)?;
-                let metric_rec_idx = metric_record.unwrap();
+                let metric_rec_idx = metric_record.context(error::MetricRecordNotFoundSnafu)?;
                 metrics_from(&record_message[metric_rec_idx].record, &mut related_data)
             }
 

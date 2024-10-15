@@ -13,6 +13,7 @@
 use crate::otlp::attribute_store::AttributeValueType;
 use crate::otlp::metric::MetricType;
 use arrow::datatypes::DataType;
+use arrow::error::ArrowError;
 use num_enum::TryFromPrimitiveError;
 use snafu::{Location, Snafu};
 
@@ -109,6 +110,34 @@ pub enum Error {
     #[snafu(display("Unsupported payload type, got: {}", actual))]
     UnsupportedPayloadType {
         actual: i32,
+        #[snafu(implicit)]
+        location: Location,
+    },
+
+    #[snafu(display("Failed to build stream reader"))]
+    BuildStreamReader {
+        #[snafu(source)]
+        source: ArrowError,
+        #[snafu(implicit)]
+        location: Location,
+    },
+
+    #[snafu(display("Failed to read record batch"))]
+    ReadRecordBatch {
+        #[snafu(source)]
+        source: ArrowError,
+        #[snafu(implicit)]
+        location: Location,
+    },
+
+    #[snafu(display("Batch is empty"))]
+    EmptyBatch {
+        #[snafu(implicit)]
+        location: Location,
+    },
+
+    #[snafu(display("Metric record not found"))]
+    MetricRecordNotFound {
         #[snafu(implicit)]
         location: Location,
     },
