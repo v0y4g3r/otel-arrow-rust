@@ -27,7 +27,7 @@ impl ExemplarsStore {
 }
 
 impl ExemplarsStore {
-    pub fn try_from(rb: &RecordBatch, attr_store: &mut AttributeStore<u32>) -> error::Result<Self> {
+    pub fn try_from(rb: &RecordBatch, attr_store: &AttributeStore<u32>) -> error::Result<Self> {
         let mut exemplars_store = Self::default();
         let mut parent_id_decoder =
             ExemplarParentIdDecoder::new(ParentIdEncoding::ParentIdDeltaGroupEncoding);

@@ -16,7 +16,7 @@ impl NumberDataPointsStore {
     pub fn from_record_batch(
         rb: &RecordBatch,
         exemplar_store: &mut ExemplarsStore,
-        attribute_store: &mut AttributeStore<u32>,
+        attribute_store: &AttributeStore<u32>,
     ) -> Result<NumberDataPointsStore> {
         let mut store = NumberDataPointsStore::default();
 

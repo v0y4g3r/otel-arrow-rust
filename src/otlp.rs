@@ -15,8 +15,11 @@ pub mod attribute_store;
 mod data_point_store;
 mod exemplar;
 mod histogram_data_points;
+#[allow(dead_code)]
 pub mod metric;
 mod number_data_points;
+
+#[allow(dead_code)]
 mod related_data;
 mod summary_data_points;
 mod e_hostograms;

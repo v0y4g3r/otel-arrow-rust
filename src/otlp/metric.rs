@@ -338,56 +338,7 @@ pub fn metrics_from(
     Ok(metrics)
 }
 
-fn scope_arrays_from_record_batch(
-    rb: &RecordBatch,
-) -> error::Result<(&StringArray, &StringArray, &UInt32Array, &UInt16Array)> {
-    let scope_array = rb
-        .column_by_name(consts::SCOPE)
-        .context(error::ColumnNotFoundSnafu {
-            name: consts::SCOPE,
-        })?;
-    let scope_array = scope_array
-        .as_any()
-        .downcast_ref::<StructArray>()
-        .with_context(|| error::ColumnDataTypeMismatchSnafu {
-            name: consts::SCOPE,
-            expect: DataType::Struct(Fields::default()),
-            actual: scope_array.data_type().clone(),
-        })?;
-    let name_array = scope_array
-        .column_by_name(consts::NAME)
-        .unwrap()
-        .as_any()
-        .downcast_ref::<StringArray>()
-        .unwrap();
-    let version_array = scope_array
-        .column_by_name(consts::VERSION)
-        .unwrap()
-        .as_any()
-        .downcast_ref::<StringArray>();
-    let droppped_attributes_count_array = scope_array
-        .column_by_name(consts::DROPPED_ATTRIBUTES_COUNT)
-        .unwrap()
-        .as_any()
-        .downcast_ref::<UInt32Array>()
-        .unwrap();
-    let id_array = scope_array
-        .column_by_name(consts::ID)
-        .unwrap()
-        .as_any()
-        .downcast_ref::<UInt16Array>()
-        .unwrap();
-
-    Ok((
-        name_array,
-        version_array.unwrap(),
-        droppped_attributes_count_array,
-        id_array,
-    ))
-}
-
 pub trait AppendAndGet<T> {
-    fn append(&mut self);
     fn append_and_get(&mut self) -> &mut T;
 }
 
@@ -395,10 +346,6 @@ impl<T> AppendAndGet<T> for Vec<T>
 where
     T: Default,
 {
-    fn append(&mut self) {
-        self.push(T::default());
-    }
-
     fn append_and_get(&mut self) -> &mut T {
         self.push(T::default());
         self.last_mut().unwrap()

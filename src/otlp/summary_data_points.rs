@@ -41,7 +41,7 @@ impl SummaryDataPointsStore {
             prev_parent_id = parent_id;
             let nbdps = store.get_or_default(parent_id);
 
-            let mut sdp = nbdps.append_and_get();
+            let sdp = nbdps.append_and_get();
             sdp.start_time_unix_nano = start_time_unix_nano_arr.value_at_or_default(idx) as u64;
             sdp.time_unix_nano = time_unix_nano_arr.value_at_or_default(idx) as u64;
             sdp.count = summary_count_arr.value_at_or_default(idx);
