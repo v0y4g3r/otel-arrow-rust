@@ -12,7 +12,7 @@
 
 use crate::arrays::{get_binary_array_opt, get_f64_array_opt, get_i64_array_opt, get_timestamp_nanosecond_array, get_u32_array, get_u32_array_opt, NullableArrayAccessor};
 use crate::error;
-use crate::otlp::attribute_store::Attribute32Store;
+use crate::otlp::attributes::attribute_store::Attribute32Store;
 use crate::otlp::metric::AppendAndGet;
 use crate::schema::consts;
 use arrow::array::RecordBatch;

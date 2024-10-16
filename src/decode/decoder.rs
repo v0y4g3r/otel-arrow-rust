@@ -118,7 +118,6 @@ impl Consumer {
         Ok(records)
     }
 
-    #[allow(dead_code)]
     pub fn consume_batches(
         &mut self,
         records: &mut BatchArrowRecords,

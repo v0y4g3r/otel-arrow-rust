@@ -15,8 +15,8 @@ use crate::arrays::{
     get_u64_array, NullableArrayAccessor,
 };
 use crate::error;
-use crate::otlp::attribute_store::Attribute32Store;
-use crate::otlp::data_point_store::SummaryDataPointsStore;
+use crate::otlp::attributes::attribute_store::Attribute32Store;
+use crate::otlp::data_points::data_point_store::SummaryDataPointsStore;
 use crate::otlp::metric::AppendAndGet;
 use crate::schema::consts;
 use arrow::array::{Array, ArrayRef, Float64Array, ListArray, RecordBatch, StructArray};

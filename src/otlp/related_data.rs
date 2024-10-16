@@ -13,8 +13,8 @@
 use crate::decode::record_message::RecordMessage;
 use crate::error;
 use crate::opentelemetry::ArrowPayloadType;
-use crate::otlp::attribute_store::{Attribute16Store, Attribute32Store};
-use crate::otlp::data_point_store::{
+use crate::otlp::attributes::attribute_store::{Attribute16Store, Attribute32Store};
+use crate::otlp::data_points::data_point_store::{
     EHistogramDataPointsStore, HistogramDataPointsStore, NumberDataPointsStore,
     SummaryDataPointsStore,
 };

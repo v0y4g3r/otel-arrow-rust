@@ -11,7 +11,7 @@
 // limitations under the License.
 
 use std::backtrace::Backtrace;
-use crate::otlp::attribute_store::AttributeValueType;
+use crate::otlp::attributes::attribute_store::AttributeValueType;
 use crate::otlp::metric::MetricType;
 use arrow::datatypes::DataType;
 use arrow::error::ArrowError;

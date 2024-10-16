@@ -12,60 +12,8 @@
 
 // https://github.com/open-telemetry/otel-arrow/blob/985aa1500a012859cec44855e187eacf46eda7c8/pkg/otel/common/arrow/attributes.go#L40
 
-use crate::arrays::NullableArrayAccessor;
-use arrow::array::{UInt16Array, UInt32Array};
-use arrow::datatypes::DataType;
-use num_enum::TryFromPrimitive;
+use crate::otlp::attributes::parent_id::{ParentId, ParentIdEncoding};
 use opentelemetry_proto::tonic::common::v1::any_value;
-use std::hash::Hash;
-use std::ops::{Add, AddAssign};
-
-pub trait ParentId: Copy + Hash + Eq + Default + Add<Output = Self> + AddAssign {
-    type Array: NullableArrayAccessor<Native = Self>;
-
-    fn arrow_data_type() -> DataType;
-
-    fn new_decoder() -> AttrsParentIdDecoder<Self>;
-}
-
-impl ParentId for u16 {
-    type Array = UInt16Array;
-
-    fn arrow_data_type() -> DataType {
-        DataType::UInt16
-    }
-
-    fn new_decoder() -> AttrsParentIdDecoder<Self> {
-        Attrs16ParentIdDecoder::default()
-    }
-}
-
-impl ParentId for u32 {
-    type Array = UInt32Array;
-
-    fn arrow_data_type() -> DataType {
-        DataType::UInt32
-    }
-
-    fn new_decoder() -> AttrsParentIdDecoder<Self> {
-        Attrs32ParentIdDecoder::default()
-    }
-}
-
-#[allow(clippy::enum_variant_names)]
-#[derive(Copy, Clone, Eq, PartialEq, Debug, TryFromPrimitive)]
-#[repr(u8)]
-pub enum ParentIdEncoding {
-    /// ParentIdNoEncoding stores the parent ID as is.
-    ParentIdNoEncoding = 0,
-    /// ParentIdDeltaEncoding stores the parent ID as a delta from the previous
-    /// parent ID.
-    ParentIdDeltaEncoding = 1,
-    /// ParentIdDeltaGroupEncoding stores the parent ID as a delta from the
-    /// previous parent ID in the same group. A group is defined by the
-    /// combination Key and Value.
-    ParentIdDeltaGroupEncoding = 2,
-}
 
 pub type Attrs16ParentIdDecoder = AttrsParentIdDecoder<u16>;
 pub type Attrs32ParentIdDecoder = AttrsParentIdDecoder<u32>;

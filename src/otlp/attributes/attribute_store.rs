@@ -12,7 +12,6 @@
 
 use crate::arrays::{get_binary_array_opt, get_bool_array_opt, get_f64_array_opt, get_i64_array_opt, get_u8_array, NullableArrayAccessor, StringArrayAccessor};
 use crate::error;
-use crate::otlp::attribute_decoder::ParentId;
 use crate::schema::consts;
 use arrow::array::{Array, RecordBatch};
 use arrow::datatypes::{Schema};
@@ -21,18 +20,19 @@ use opentelemetry_proto::tonic::common::v1::any_value::Value;
 use opentelemetry_proto::tonic::common::v1::{AnyValue, KeyValue};
 use snafu::{OptionExt, ResultExt};
 use std::collections::HashMap;
+use crate::otlp::attributes::parent_id::ParentId;
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug, TryFromPrimitive)]
 #[repr(u8)]
 pub enum AttributeValueType {
-    Empty = 0,
-    Str = 1,
-    Int = 2,
-    Double = 3,
-    Bool = 4,
-    Map = 5,
-    Slice = 6,
-    Bytes = 7,
+    EMPTY = 0,
+    STR = 1,
+    INT = 2,
+    DOUBLE = 3,
+    BOOL = 4,
+    MAP = 5,
+    SLICE = 6,
+    BYTES = 7,
 }
 
 pub type Attribute32Store = AttributeStore<u32>;
@@ -90,28 +90,28 @@ where
             let value_type = AttributeValueType::try_from(value_type_arr.value_at_or_default(idx))
                 .context(error::UnrecognizedAttributeValueTypeSnafu)?;
             let value = match value_type {
-                AttributeValueType::Str => {
+                AttributeValueType::STR => {
                     Value::StringValue(value_str_arr.value_at(idx).unwrap_or_default())
                 }
-                AttributeValueType::Int => Value::IntValue(value_int_arr.value_at_or_default(idx)),
-                AttributeValueType::Double => {
+                AttributeValueType::INT => Value::IntValue(value_int_arr.value_at_or_default(idx)),
+                AttributeValueType::DOUBLE => {
                     Value::DoubleValue(value_double_arr.value_at_or_default(idx))
                 }
-                AttributeValueType::Bool => {
+                AttributeValueType::BOOL => {
                     Value::BoolValue(value_bool_arr.value_at_or_default(idx))
                 }
-                AttributeValueType::Bytes => {
+                AttributeValueType::BYTES => {
                     Value::BytesValue(value_bytes_arr.value_at_or_default(idx))
                 }
-                AttributeValueType::Slice => {
+                AttributeValueType::SLICE => {
                     // todo: support deserialize [any_value::Value::ArrayValue]
                     return error::UnsupportedAttributeValueSnafu { type_name: "slice" }.fail();
                 }
-                AttributeValueType::Map => {
+                AttributeValueType::MAP => {
                     // todo: support deserialize [any_value::Value::KvlistValue]
                     return error::UnsupportedAttributeValueSnafu { type_name: "map" }.fail();
                 }
-                AttributeValueType::Empty => {
+                AttributeValueType::EMPTY => {
                     // should warn here.
                     continue;
                 }

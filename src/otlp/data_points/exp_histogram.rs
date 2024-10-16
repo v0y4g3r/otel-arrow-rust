@@ -15,16 +15,16 @@ use crate::arrays::{
     get_u32_array_opt, get_u64_array, NullableArrayAccessor,
 };
 use crate::error;
-use crate::otlp::attribute_store::Attribute32Store;
-use crate::otlp::data_point_store::EHistogramDataPointsStore;
+use crate::otlp::attributes::attribute_store::Attribute32Store;
+use crate::otlp::data_points::data_point_store::EHistogramDataPointsStore;
 use crate::otlp::exemplar::ExemplarsStore;
-use crate::otlp::histogram_data_points::ListValueAccessor;
 use crate::otlp::metric::AppendAndGet;
 use crate::schema::consts;
 use arrow::array::{Array, Int32Array, ListArray, RecordBatch, StructArray};
 use arrow::datatypes::{DataType, Field, FieldRef, Fields, UInt64Type};
 use opentelemetry_proto::tonic::metrics::v1::exponential_histogram_data_point::Buckets;
 use snafu::OptionExt;
+use crate::otlp::data_points::histogram::ListValueAccessor;
 
 impl EHistogramDataPointsStore {
     pub fn from_record_batch(

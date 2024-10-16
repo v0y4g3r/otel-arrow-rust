@@ -10,14 +10,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-mod attribute_decoder;
-pub mod attribute_store;
-mod data_point_store;
 mod exemplar;
-mod histogram_data_points;
 pub mod metric;
-mod number_data_points;
 
-mod e_hostograms;
 pub mod related_data;
-mod summary_data_points;
+pub mod data_points;
+pub mod attributes;
