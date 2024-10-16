@@ -26,7 +26,7 @@ fn main() {
         .out_dir(out_dir)
         .compile_protos(
             &[
-                "proto/otel-arrow/proto/opentelemetry/proto/experimental/arrow/v1/arrow_service.proto",
+                "contrib/otel-arrow/proto/opentelemetry/proto/experimental/arrow/v1/arrow_service.proto",
             ],
             &["proto"],
         )

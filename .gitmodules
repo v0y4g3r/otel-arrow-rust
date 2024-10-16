@@ -1,0 +1,3 @@
+[submodule "contrib/otel-arrow"]
+	path = contrib/otel-arrow
+	url = https://github.com/open-telemetry/otel-arrow
