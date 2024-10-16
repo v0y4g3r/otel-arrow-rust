@@ -1173,7 +1173,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "otel-arrow-proto"
+name = "otel-arrow-rust"
 version = "0.1.0"
 dependencies = [
  "arrow",
