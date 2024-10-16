@@ -4,8 +4,8 @@ The non-official implementation for [OTEL Arrow protocol](https://github.com/ope
 
 - Decoding Arrow IPC record batches to Opentelemetry data structures.
     - 🚧 Metrics
-      - [ ] Logs
-      - [ ] Traces
+    - [ ] Logs
+    - [ ] Traces
 - Encoding Opentelemetry data structures to Arrow IPC record batches.
     - [ ] Metrics
     - [ ] Logs
