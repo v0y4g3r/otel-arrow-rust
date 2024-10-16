@@ -13,7 +13,7 @@
 use std::path::Path;
 
 fn main() {
-    let out_dir = Path::new("src");
+    let out_dir = Path::new("src/proto");
     let builder = tonic_build::configure()
         .build_server(true)
         .build_client(true);

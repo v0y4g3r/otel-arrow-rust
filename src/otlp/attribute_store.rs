@@ -10,7 +10,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::arrays::{get_binary_array_opt, get_bool_array_opt, get_f64_array_opt, get_i64_array_opt, get_string_array_opt, get_u8_array, NullableArrayAccessor, StringArrayAccessor};
+use crate::arrays::{get_binary_array_opt, get_bool_array_opt, get_f64_array_opt, get_i64_array_opt, get_u8_array, NullableArrayAccessor, StringArrayAccessor};
 use crate::error;
 use crate::otlp::attribute_decoder::ParentId;
 use crate::schema::consts;

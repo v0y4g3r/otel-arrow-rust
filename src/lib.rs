@@ -22,10 +22,15 @@ mod otlp;
 mod schema;
 
 #[path = ""]
-pub mod opentelemetry {
-    #[allow(clippy::all)]
-    #[path = "opentelemetry.proto.experimental.arrow.v1.rs"]
-    pub mod arrow;
+mod opentelemetry {
+    pub use crate::opentelemetry::proto::arrow::{
+        ArrowPayload, ArrowPayloadType, BatchArrowRecords,
+    };
+    pub mod proto {
+        #[allow(clippy::all)]
+        #[path = "opentelemetry.proto.experimental.arrow.v1.rs"]
+        pub mod arrow;
+    }
 }
 
 pub use decode::decoder::Consumer;
