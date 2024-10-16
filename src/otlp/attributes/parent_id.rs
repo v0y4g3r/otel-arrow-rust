@@ -10,16 +10,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::hash::Hash;
-use std::ops::{Add, AddAssign};
+use crate::arrays::NullableArrayAccessor;
+use crate::otlp::attributes::decoder::{
+    Attrs16ParentIdDecoder, Attrs32ParentIdDecoder, AttrsParentIdDecoder,
+};
 use arrow::array::{UInt16Array, UInt32Array};
 use arrow::datatypes::DataType;
 use num_enum::TryFromPrimitive;
-use crate::arrays::NullableArrayAccessor;
-use crate::otlp::attributes::attribute_decoder::{Attrs16ParentIdDecoder, Attrs32ParentIdDecoder, AttrsParentIdDecoder};
+use std::hash::Hash;
+use std::ops::{Add, AddAssign};
 
 pub trait ParentId: Copy + Hash + Eq + Default + Add<Output = Self> + AddAssign {
-    type Array: NullableArrayAccessor<Native=Self>;
+    type Array: NullableArrayAccessor<Native = Self> + 'static;
 
     fn arrow_data_type() -> DataType;
 

@@ -10,9 +10,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::arrays::{get_f64_array_opt, get_i64_array_opt, get_timestamp_nanosecond_array, get_u16_array, get_u32_array, get_u32_array_opt, NullableArrayAccessor};
+use crate::arrays::{
+    get_f64_array_opt, get_i64_array_opt, get_timestamp_nanosecond_array, get_u16_array,
+    get_u32_array, get_u32_array_opt, NullableArrayAccessor,
+};
 use crate::error::Result;
-use crate::otlp::attributes::attribute_store::Attribute32Store;
+use crate::otlp::attributes::store::Attribute32Store;
 use crate::otlp::data_points::data_point_store::NumberDataPointsStore;
 use crate::otlp::exemplar::ExemplarsStore;
 use crate::schema::consts;

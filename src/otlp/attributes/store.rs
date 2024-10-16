@@ -10,17 +10,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::arrays::{get_binary_array_opt, get_bool_array_opt, get_f64_array_opt, get_i64_array_opt, get_u8_array, NullableArrayAccessor, StringArrayAccessor};
+use crate::arrays::{
+    get_binary_array_opt, get_bool_array_opt, get_f64_array_opt, get_i64_array_opt, get_u8_array,
+    NullableArrayAccessor, StringArrayAccessor,
+};
 use crate::error;
+use crate::otlp::attributes::parent_id::ParentId;
 use crate::schema::consts;
 use arrow::array::{Array, RecordBatch};
-use arrow::datatypes::{Schema};
+use arrow::datatypes::Schema;
 use num_enum::TryFromPrimitive;
 use opentelemetry_proto::tonic::common::v1::any_value::Value;
 use opentelemetry_proto::tonic::common::v1::{AnyValue, KeyValue};
 use snafu::{OptionExt, ResultExt};
 use std::collections::HashMap;
-use crate::otlp::attributes::parent_id::ParentId;
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug, TryFromPrimitive)]
 #[repr(u8)]
@@ -63,22 +66,25 @@ where
 impl<T> TryFrom<&RecordBatch> for AttributeStore<T>
 where
     T: ParentId,
-    <T as ParentId>::Array: Array + 'static,
+    <T as ParentId>::Array: Array,
 {
     type Error = error::Error;
 
     fn try_from(rb: &RecordBatch) -> Result<Self, Self::Error> {
         let mut store = Self::default();
 
-
-        let key_arr = rb.column_by_name(consts::ATTRIBUTE_KEY).map(|a|{
-            StringArrayAccessor::new(a)
-        }).transpose()?;
+        let key_arr = rb
+            .column_by_name(consts::ATTRIBUTE_KEY)
+            .map(StringArrayAccessor::new)
+            .transpose()?;
         let value_type_arr = get_u8_array(rb, consts::ATTRIBUTE_TYPE)?;
 
-        let value_str_arr=StringArrayAccessor::new(rb.column_by_name(consts::ATTRIBUTE_STR).context(error::ColumnNotFoundSnafu {
-            name: consts::ATTRIBUTE_STR
-        })?)?;
+        let value_str_arr = StringArrayAccessor::new(
+            rb.column_by_name(consts::ATTRIBUTE_STR)
+                .context(error::ColumnNotFoundSnafu {
+                    name: consts::ATTRIBUTE_STR,
+                })?,
+        )?;
 
         let value_int_arr = get_i64_array_opt(rb, consts::ATTRIBUTE_INT)?;
         let value_double_arr = get_f64_array_opt(rb, consts::ATTRIBUTE_DOUBLE)?;

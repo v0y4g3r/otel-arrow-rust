@@ -125,11 +125,12 @@ impl Consumer {
         ensure!(!records.arrow_payloads.is_empty(), error::EmptyBatchSnafu);
 
         let main_record_type = records.arrow_payloads[0].r#type;
-        let payload_type = ArrowPayloadType::try_from(main_record_type).map_err(|_|
+        let payload_type = ArrowPayloadType::try_from(main_record_type).map_err(|_| {
             error::UnsupportedPayloadTypeSnafu {
                 actual: main_record_type,
-            }.build(),
-        )?;
+            }
+            .build()
+        })?;
         match payload_type {
             ArrowPayloadType::UnivariateMetrics => {
                 let record_message = self.consume_bar(records)?;

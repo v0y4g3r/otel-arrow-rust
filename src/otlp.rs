@@ -13,6 +13,6 @@
 mod exemplar;
 pub mod metric;
 
-pub mod related_data;
-pub mod data_points;
 pub mod attributes;
+pub mod data_points;
+pub mod related_data;

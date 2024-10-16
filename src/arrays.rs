@@ -223,9 +223,13 @@ where
 
 pub type DictionaryStringArrayAccessor<'a, K> = DictionaryArrayAccessor<'a, K, StringArray>;
 
+/// [StringArrayAccessor] allows to access string values from [StringArray]s and [DictionaryArray]s.
 pub enum StringArrayAccessor<'a> {
+    /// Plain StringArray
     String(&'a StringArray),
+    /// DictionaryArray with UInt8 keys and String values.
     Dictionary8(DictionaryStringArrayAccessor<'a, UInt8Type>),
+    /// DictionaryArray with UInt16 keys and String values.
     Dictionary16(DictionaryStringArrayAccessor<'a, UInt16Type>),
 }
 
@@ -251,7 +255,9 @@ impl<'a> StringArrayAccessor<'a> {
             DataType::Dictionary(key, v) => {
                 ensure!(
                     **v == DataType::Utf8,
-                    error::UnsupportedStringColumnTypeSnafu { data_type: (**v).clone() }
+                    error::UnsupportedStringColumnTypeSnafu {
+                        data_type: (**v).clone()
+                    }
                 );
                 match **key {
                     DataType::UInt8 => Self::Dictionary8(DictionaryArrayAccessor::new(

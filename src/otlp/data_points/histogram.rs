@@ -15,7 +15,7 @@ use crate::arrays::{
     get_u32_array_opt, get_u64_array, NullableArrayAccessor,
 };
 use crate::error;
-use crate::otlp::attributes::attribute_store::Attribute32Store;
+use crate::otlp::attributes::store::Attribute32Store;
 use crate::otlp::data_points::data_point_store::HistogramDataPointsStore;
 use crate::otlp::exemplar::ExemplarsStore;
 use crate::otlp::metric::AppendAndGet;

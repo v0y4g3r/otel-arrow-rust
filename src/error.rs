@@ -10,13 +10,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::backtrace::Backtrace;
-use crate::otlp::attributes::attribute_store::AttributeValueType;
+use crate::otlp::attributes::store::AttributeValueType;
 use crate::otlp::metric::MetricType;
 use arrow::datatypes::DataType;
 use arrow::error::ArrowError;
 use num_enum::TryFromPrimitiveError;
 use snafu::{Location, Snafu};
+use std::backtrace::Backtrace;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -24,10 +24,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 #[snafu(visibility(pub))]
 pub enum Error {
     #[snafu(display("Cannot find column: {}", name))]
-    ColumnNotFound {
-        name: String,
-        backtrace: Backtrace
-    },
+    ColumnNotFound { name: String, backtrace: Backtrace },
     #[snafu(display(
         "Column {} data type mismatch, expect: {}, actual: {}",
         name,
@@ -154,5 +151,5 @@ pub enum Error {
         data_type: DataType,
         #[snafu(implicit)]
         location: Location,
-    }
+    },
 }

@@ -10,8 +10,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+pub mod data_point_store;
+mod exp_histogram;
 pub mod histogram;
 pub mod number;
 pub mod summary;
-pub mod data_point_store;
-mod exp_histogram;

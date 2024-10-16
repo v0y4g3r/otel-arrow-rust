@@ -11,9 +11,8 @@
 // limitations under the License.
 
 use crate::arrays::{
-    get_bool_array_opt, get_i32_array_opt,
-    get_string_array_opt, get_u16_array, get_u8_array
-    , NullableArrayAccessor, StringArrayAccessor,
+    get_bool_array_opt, get_i32_array_opt, get_string_array_opt, get_u16_array, get_u8_array,
+    NullableArrayAccessor, StringArrayAccessor,
 };
 use crate::error;
 use crate::otlp::related_data::RelatedData;

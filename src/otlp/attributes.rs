@@ -10,6 +10,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pub mod attribute_decoder;
-pub mod attribute_store;
+pub mod decoder;
 mod parent_id;
+pub mod store;
