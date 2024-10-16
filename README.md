@@ -13,7 +13,7 @@ The non-official implementation for [OTEL Arrow protocol](https://github.com/ope
 
 ## Build
 
-```sql
+```bash
 git clone https://github.com/v0y4g3r/otel-arrow-rust.git
 cd otel-arrow-rust && git submodule update --init --recursive
 cargo build --release
