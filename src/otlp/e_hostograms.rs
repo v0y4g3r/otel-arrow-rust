@@ -11,7 +11,7 @@
 // limitations under the License.
 
 use crate::arrays::{
-    get_f64_array_opt, get_i32_array, get_timestamp_nanosecond_array, get_u16_array, get_u32_array,
+    get_f64_array_opt, get_i32_array, get_timestamp_nanosecond_array, get_u16_array,
     get_u32_array_opt, get_u64_array, NullableArrayAccessor,
 };
 use crate::error;
@@ -47,7 +47,7 @@ impl EHistogramDataPointsStore {
             PositiveNegativeArrayAccess::try_new(rb, consts::EXP_HISTOGRAM_POSITIVE)?;
         let negative_arr =
             PositiveNegativeArrayAccess::try_new(rb, consts::EXP_HISTOGRAM_NEGATIVE)?;
-        let flags_arr = get_u32_array(rb, consts::FLAGS)?;
+        let flags_arr = get_u32_array_opt(rb, consts::FLAGS)?;
         let min_arr = get_f64_array_opt(rb, consts::HISTOGRAM_MIN)?;
         let max_arr = get_f64_array_opt(rb, consts::HISTOGRAM_MAX)?;
 

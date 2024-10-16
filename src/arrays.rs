@@ -12,15 +12,14 @@
 
 use crate::error;
 use arrow::array::{
-    Array, ArrayAccessor, ArrowPrimitiveType, BinaryArray, BooleanArray, DictionaryArray,
-    Float32Array, Float64Array, Int16Array, Int32Array, Int64Array, Int8Array, PrimitiveArray,
-    RecordBatch, StringArray, TimestampNanosecondArray, UInt16Array, UInt32Array, UInt64Array,
-    UInt8Array,
+    Array, ArrayRef, ArrowPrimitiveType, BinaryArray, BooleanArray, DictionaryArray, Float32Array,
+    Float64Array, Int16Array, Int32Array, Int64Array, Int8Array, PrimitiveArray, RecordBatch,
+    StringArray, TimestampNanosecondArray, UInt16Array, UInt32Array, UInt64Array, UInt8Array,
 };
-use arrow::datatypes::ArrowNativeType;
 use arrow::datatypes::{ArrowDictionaryKeyType, TimeUnit};
+use arrow::datatypes::{ArrowNativeType, DataType, UInt16Type, UInt8Type};
 use paste::paste;
-use snafu::OptionExt;
+use snafu::{ensure, OptionExt};
 
 pub trait NullableArrayAccessor {
     type Native;
@@ -32,6 +31,28 @@ pub trait NullableArrayAccessor {
         Self::Native: Default,
     {
         self.value_at(idx).unwrap_or_default()
+    }
+}
+
+impl<T> NullableArrayAccessor for &T
+where
+    T: NullableArrayAccessor,
+{
+    type Native = T::Native;
+
+    fn value_at(&self, idx: usize) -> Option<Self::Native> {
+        (*self).value_at(idx)
+    }
+}
+
+impl<T> NullableArrayAccessor for Option<T>
+where
+    T: NullableArrayAccessor,
+{
+    type Native = T::Native;
+
+    fn value_at(&self, idx: usize) -> Option<Self::Native> {
+        self.as_ref().and_then(|r| r.value_at(idx))
     }
 }
 
@@ -50,18 +71,7 @@ where
     }
 }
 
-impl<T> NullableArrayAccessor for Option<&PrimitiveArray<T>>
-where
-    T: ArrowPrimitiveType,
-{
-    type Native = T::Native;
-
-    fn value_at(&self, idx: usize) -> Option<Self::Native> {
-        self.as_ref().and_then(|a| a.value_at(idx))
-    }
-}
-
-impl NullableArrayAccessor for &BooleanArray {
+impl NullableArrayAccessor for BooleanArray {
     type Native = bool;
 
     fn value_at(&self, idx: usize) -> Option<Self::Native> {
@@ -73,32 +83,24 @@ impl NullableArrayAccessor for &BooleanArray {
     }
 }
 
-impl NullableArrayAccessor for Option<&BooleanArray> {
-    type Native = bool;
-
-    fn value_at(&self, idx: usize) -> Option<Self::Native> {
-        self.as_ref().and_then(|a| a.value_at(idx))
-    }
-}
-
-impl NullableArrayAccessor for &StringArray {
-    type Native = String;
+impl NullableArrayAccessor for BinaryArray {
+    type Native = Vec<u8>;
 
     fn value_at(&self, idx: usize) -> Option<Self::Native> {
         if self.is_valid(idx) {
-            Some(self.value(idx).to_string())
+            Some(self.value(idx).to_vec())
         } else {
             None
         }
     }
 }
 
-impl NullableArrayAccessor for &BinaryArray {
-    type Native = Vec<u8>;
+impl NullableArrayAccessor for StringArray {
+    type Native = String;
 
     fn value_at(&self, idx: usize) -> Option<Self::Native> {
         if self.is_valid(idx) {
-            Some(self.value(idx).to_vec())
+            Some(self.value(idx).to_string())
         } else {
             None
         }
@@ -216,5 +218,113 @@ where
             .downcast_ref::<Float64Array>()
             .expect("Float64 array");
         Ok(x.value_at(value_idx))
+    }
+}
+
+pub type DictionaryStringArrayAccessor<'a, K> = DictionaryArrayAccessor<'a, K, StringArray>;
+
+pub enum StringArrayAccessor<'a> {
+    String(&'a StringArray),
+    Dictionary8(DictionaryStringArrayAccessor<'a, UInt8Type>),
+    Dictionary16(DictionaryStringArrayAccessor<'a, UInt16Type>),
+}
+
+impl<'a> NullableArrayAccessor for StringArrayAccessor<'a> {
+    type Native = String;
+
+    fn value_at(&self, idx: usize) -> Option<Self::Native> {
+        match self {
+            StringArrayAccessor::String(s) => s.value_at(idx),
+            StringArrayAccessor::Dictionary8(d) => d.value_at(idx),
+            StringArrayAccessor::Dictionary16(d) => d.value_at(idx),
+        }
+    }
+}
+
+impl<'a> StringArrayAccessor<'a> {
+    pub fn new(a: &'a ArrayRef) -> error::Result<Self> {
+        let result = match a.data_type() {
+            DataType::Utf8 => {
+                // safety: we've checked array data type
+                Self::String(a.as_any().downcast_ref::<StringArray>().unwrap())
+            }
+            DataType::Dictionary(key, v) => {
+                ensure!(
+                    **v == DataType::Utf8,
+                    error::UnsupportedStringColumnTypeSnafu { data_type: (**v).clone() }
+                );
+                match **key {
+                    DataType::UInt8 => Self::Dictionary8(DictionaryArrayAccessor::new(
+                        // safety: we've checked the key type
+                        a.as_any()
+                            .downcast_ref::<DictionaryArray<UInt8Type>>()
+                            .unwrap(),
+                    )),
+                    DataType::UInt16 => Self::Dictionary16(DictionaryArrayAccessor::new(
+                        // safety: we've checked the key type
+                        a.as_any()
+                            .downcast_ref::<DictionaryArray<UInt16Type>>()
+                            .unwrap(),
+                    )),
+                    _ => {
+                        return error::UnsupportedStringDictKeyTypeSnafu {
+                            data_type: a.data_type().clone(),
+                        }
+                        .fail()
+                    }
+                }
+            }
+            _ => {
+                return error::UnsupportedStringColumnTypeSnafu {
+                    data_type: a.data_type().clone(),
+                }
+                .fail()
+            }
+        };
+        Ok(result)
+    }
+}
+
+pub struct DictionaryArrayAccessor<'a, K, V>
+where
+    K: ArrowDictionaryKeyType,
+{
+    inner: &'a DictionaryArray<K>,
+    value: &'a V,
+}
+
+impl<'a, K, V> DictionaryArrayAccessor<'a, K, V>
+where
+    K: ArrowDictionaryKeyType,
+    V: Array + NullableArrayAccessor + 'static,
+{
+    pub fn new(a: &'a DictionaryArray<K>) -> Self {
+        let dict = a.as_any().downcast_ref::<DictionaryArray<K>>().unwrap();
+        let value = dict.values().as_any().downcast_ref::<V>().unwrap();
+        Self { inner: dict, value }
+    }
+
+    pub fn value_at(&self, idx: usize) -> Option<V::Native> {
+        let offset = self.inner.key(idx).unwrap();
+        self.value.value_at(offset)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::arrays::{NullableArrayAccessor, StringArrayAccessor};
+    use arrow::array::{ArrayRef, DictionaryArray};
+    use arrow::datatypes::UInt16Type;
+    use std::sync::Arc;
+
+    #[test]
+    fn test_dictionary_accessor() {
+        let expected: DictionaryArray<UInt16Type> = vec!["a", "a", "b", "c"].into_iter().collect();
+        let dict = Arc::new(expected) as ArrayRef;
+        let accessor = StringArrayAccessor::new(&dict).unwrap();
+        assert_eq!("a", accessor.value_at(0).unwrap());
+        assert_eq!("a", accessor.value_at(1).unwrap());
+        assert_eq!("b", accessor.value_at(2).unwrap());
+        assert_eq!("c", accessor.value_at(3).unwrap());
     }
 }

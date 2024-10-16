@@ -27,3 +27,5 @@ pub mod opentelemetry {
     #[path = "opentelemetry.proto.experimental.arrow.v1.rs"]
     pub mod arrow;
 }
+
+pub use decode::decoder::Consumer;

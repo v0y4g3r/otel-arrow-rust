@@ -10,15 +10,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::arrays::{
-    get_binary_array, get_bool_array, get_f64_array, get_i64_array, get_string_array, get_u8_array,
-    NullableArrayAccessor,
-};
+use crate::arrays::{get_binary_array_opt, get_bool_array_opt, get_f64_array_opt, get_i64_array_opt, get_string_array_opt, get_u8_array, NullableArrayAccessor, StringArrayAccessor};
 use crate::error;
 use crate::otlp::attribute_decoder::ParentId;
 use crate::schema::consts;
 use arrow::array::{Array, RecordBatch};
-use arrow::datatypes::Schema;
+use arrow::datatypes::{Schema};
 use num_enum::TryFromPrimitive;
 use opentelemetry_proto::tonic::common::v1::any_value::Value;
 use opentelemetry_proto::tonic::common::v1::{AnyValue, KeyValue};
@@ -73,13 +70,20 @@ where
     fn try_from(rb: &RecordBatch) -> Result<Self, Self::Error> {
         let mut store = Self::default();
 
-        let key_arr = get_string_array(rb, consts::NAME)?;
+
+        let key_arr = rb.column_by_name(consts::ATTRIBUTE_KEY).map(|a|{
+            StringArrayAccessor::new(a)
+        }).transpose()?;
         let value_type_arr = get_u8_array(rb, consts::ATTRIBUTE_TYPE)?;
-        let value_str_arr = get_string_array(rb, consts::ATTRIBUTE_STR)?;
-        let value_int_arr = get_i64_array(rb, consts::ATTRIBUTE_INT)?;
-        let value_double_arr = get_f64_array(rb, consts::ATTRIBUTE_DOUBLE)?;
-        let value_bool_arr = get_bool_array(rb, consts::ATTRIBUTE_BOOL)?;
-        let value_bytes_arr = get_binary_array(rb, consts::ATTRIBUTE_BYTES)?;
+
+        let value_str_arr=StringArrayAccessor::new(rb.column_by_name(consts::ATTRIBUTE_STR).context(error::ColumnNotFoundSnafu {
+            name: consts::ATTRIBUTE_STR
+        })?)?;
+
+        let value_int_arr = get_i64_array_opt(rb, consts::ATTRIBUTE_INT)?;
+        let value_double_arr = get_f64_array_opt(rb, consts::ATTRIBUTE_DOUBLE)?;
+        let value_bool_arr = get_bool_array_opt(rb, consts::ATTRIBUTE_BOOL)?;
+        let value_bytes_arr = get_binary_array_opt(rb, consts::ATTRIBUTE_BYTES)?;
 
         for idx in 0..rb.num_rows() {
             let key = key_arr.value_at_or_default(idx);
@@ -87,7 +91,7 @@ where
                 .context(error::UnrecognizedAttributeValueTypeSnafu)?;
             let value = match value_type {
                 AttributeValueType::Str => {
-                    Value::StringValue(value_str_arr.value_at_or_default(idx))
+                    Value::StringValue(value_str_arr.value_at(idx).unwrap_or_default())
                 }
                 AttributeValueType::Int => Value::IntValue(value_int_arr.value_at_or_default(idx)),
                 AttributeValueType::Double => {

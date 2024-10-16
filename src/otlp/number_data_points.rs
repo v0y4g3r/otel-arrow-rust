@@ -10,10 +10,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::arrays::{
-    get_f64_array, get_i64_array, get_timestamp_nanosecond_array, get_u16_array, get_u32_array,
-    NullableArrayAccessor,
-};
+use crate::arrays::{get_f64_array_opt, get_i64_array_opt, get_timestamp_nanosecond_array, get_u16_array, get_u32_array, get_u32_array_opt, NullableArrayAccessor};
 use crate::error::Result;
 use crate::otlp::attribute_store::Attribute32Store;
 use crate::otlp::data_point_store::NumberDataPointsStore;
@@ -40,9 +37,9 @@ impl NumberDataPointsStore {
 
         // todo(hl): The receiver code of otelarrow also handles dictionary arrays for int_value field
         // but the exporter side seems only encode to Int64Array: https://github.com/open-telemetry/otel-arrow/blob/79b50d99dde17c5bb085a0204db406d8f6ad880b/pkg/otel/metrics/arrow/number_data_point.go#L138
-        let int_value = get_i64_array(rb, consts::INT_VALUE)?;
-        let double_value = get_f64_array(rb, consts::DOUBLE_VALUE)?;
-        let flags = get_u32_array(rb, consts::FLAGS)?;
+        let int_value = get_i64_array_opt(rb, consts::INT_VALUE)?;
+        let double_value = get_f64_array_opt(rb, consts::DOUBLE_VALUE)?;
+        let flags = get_u32_array_opt(rb, consts::FLAGS)?;
 
         let mut last_id = 0;
         let mut prev_parent_id = 0;

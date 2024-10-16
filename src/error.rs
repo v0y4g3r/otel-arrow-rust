@@ -10,6 +10,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::backtrace::Backtrace;
 use crate::otlp::attribute_store::AttributeValueType;
 use crate::otlp::metric::MetricType;
 use arrow::datatypes::DataType;
@@ -25,8 +26,7 @@ pub enum Error {
     #[snafu(display("Cannot find column: {}", name))]
     ColumnNotFound {
         name: String,
-        #[snafu(implicit)]
-        location: Location,
+        backtrace: Backtrace
     },
     #[snafu(display(
         "Column {} data type mismatch, expect: {}, actual: {}",
@@ -141,4 +141,18 @@ pub enum Error {
         #[snafu(implicit)]
         location: Location,
     },
+
+    #[snafu(display("Unsupported string column type, given: {}", data_type))]
+    UnsupportedStringColumnType {
+        data_type: DataType,
+        #[snafu(implicit)]
+        location: Location,
+    },
+
+    #[snafu(display("Unsupported string dictionary key type, given: {}", data_type))]
+    UnsupportedStringDictKeyType {
+        data_type: DataType,
+        #[snafu(implicit)]
+        location: Location,
+    }
 }

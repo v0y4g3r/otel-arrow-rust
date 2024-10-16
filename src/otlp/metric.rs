@@ -11,8 +11,9 @@
 // limitations under the License.
 
 use crate::arrays::{
-    get_bool_array, get_i32_array, get_string_array, get_u16_array, get_u8_array,
-    NullableArrayAccessor,
+    get_bool_array_opt, get_i32_array_opt,
+    get_string_array_opt, get_u16_array, get_u8_array
+    , NullableArrayAccessor, StringArrayAccessor,
 };
 use crate::error;
 use crate::otlp::related_data::RelatedData;
@@ -21,6 +22,7 @@ use arrow::array::{
     Array, ArrayRef, BooleanArray, Int32Array, RecordBatch, StringArray, StructArray, UInt16Array,
     UInt32Array, UInt8Array,
 };
+use arrow::datatypes::DataType::UInt32;
 use arrow::datatypes::{DataType, Field, Fields};
 use num_enum::TryFromPrimitive;
 use opentelemetry_proto::tonic::collector::metrics::v1::ExportMetricsServiceRequest;
@@ -41,8 +43,8 @@ pub enum MetricType {
 
 struct ResourceArrays<'a> {
     id: &'a UInt16Array,
-    dropped_attributes_count: &'a UInt32Array,
-    schema_url: &'a StringArray,
+    dropped_attributes_count: Option<&'a UInt32Array>,
+    schema_url: Option<&'a StringArray>,
 }
 
 impl<'a> ResourceArrays<'a> {
@@ -75,21 +77,31 @@ impl<'a> TryFrom<&'a RecordBatch> for ResourceArrays<'a> {
         }
         .downcast::<UInt16Array>()?;
 
-        let dropped_attributes_count = Downcaster {
-            name: consts::DROPPED_ATTRIBUTES_COUNT,
-            source: struct_array,
-            array: |s: &'a StructArray| s.column_by_name(consts::DROPPED_ATTRIBUTES_COUNT),
-            expect_type: || DataType::UInt32,
-        }
-        .downcast::<UInt32Array>()?;
+        let dropped_attributes_count = struct_array
+            .column_by_name(consts::DROPPED_ATTRIBUTES_COUNT)
+            .map(|a| {
+                a.as_any().downcast_ref::<UInt32Array>().context(
+                    error::ColumnDataTypeMismatchSnafu {
+                        name: consts::DROPPED_ATTRIBUTES_COUNT,
+                        expect: UInt32,
+                        actual: a.data_type().clone(),
+                    },
+                )
+            })
+            .transpose()?;
 
-        let schema_url = Downcaster {
-            name: consts::SCHEMA_URL,
-            source: struct_array,
-            array: |s: &'a StructArray| s.column_by_name(consts::SCHEMA_URL),
-            expect_type: || DataType::Utf8,
-        }
-        .downcast::<StringArray>()?;
+        let schema_url = struct_array
+            .column_by_name(consts::SCHEMA_URL)
+            .map(|a| {
+                a.as_any().downcast_ref::<StringArray>().context(
+                    error::ColumnDataTypeMismatchSnafu {
+                        name: consts::SCHEMA_URL,
+                        expect: DataType::Utf8,
+                        actual: a.data_type().clone(),
+                    },
+                )
+            })
+            .transpose()?;
 
         Ok(Self {
             id: id_array,
@@ -100,10 +112,10 @@ impl<'a> TryFrom<&'a RecordBatch> for ResourceArrays<'a> {
 }
 
 struct ScopeArrays<'a> {
-    name: &'a StringArray,
-    version: &'a StringArray,
-    dropped_attributes_count: &'a UInt32Array,
-    id: &'a UInt16Array,
+    name: StringArrayAccessor<'a>,
+    version: Option<&'a StringArray>,
+    dropped_attributes_count: Option<&'a UInt32Array>,
+    id: Option<&'a UInt16Array>,
 }
 
 impl<'a> ScopeArrays<'a> {
@@ -156,37 +168,50 @@ impl<'a> TryFrom<&'a RecordBatch> for ScopeArrays<'a> {
         }
         .downcast::<StructArray>()?;
 
-        let name = Downcaster {
-            name: consts::NAME,
-            source: scope_array,
-            array: |s: &'a StructArray| s.column_by_name(consts::NAME),
-            expect_type: || DataType::Utf8,
-        }
-        .downcast::<StringArray>()?;
+        let name = StringArrayAccessor::new(
+            scope_array
+                .column_by_name(consts::NAME)
+                .context(error::ColumnNotFoundSnafu { name: consts::NAME })?,
+        )?;
 
-        let version = Downcaster {
-            name: consts::VERSION,
-            source: scope_array,
-            array: |s: &'a StructArray| s.column_by_name(consts::VERSION),
-            expect_type: || DataType::Utf8,
-        }
-        .downcast::<StringArray>()?;
+        let version = scope_array
+            .column_by_name(consts::VERSION)
+            .map(|a| {
+                a.as_any().downcast_ref::<StringArray>().context(
+                    error::ColumnDataTypeMismatchSnafu {
+                        name: consts::VERSION,
+                        expect: DataType::Utf8,
+                        actual: a.data_type().clone(),
+                    },
+                )
+            })
+            .transpose()?;
 
-        let dropped_attributes_count = Downcaster {
-            name: consts::DROPPED_ATTRIBUTES_COUNT,
-            source: scope_array,
-            array: |s: &'a StructArray| s.column_by_name(consts::DROPPED_ATTRIBUTES_COUNT),
-            expect_type: || DataType::UInt32,
-        }
-        .downcast::<UInt32Array>()?;
+        let dropped_attributes_count = scope_array
+            .column_by_name(consts::DROPPED_ATTRIBUTES_COUNT)
+            .map(|a| {
+                a.as_any().downcast_ref::<UInt32Array>().context(
+                    error::ColumnDataTypeMismatchSnafu {
+                        name: consts::DROPPED_ATTRIBUTES_COUNT,
+                        expect: UInt32,
+                        actual: a.data_type().clone(),
+                    },
+                )
+            })
+            .transpose()?;
 
-        let id = Downcaster {
-            name: consts::ID,
-            source: scope_array,
-            array: |s: &'a StructArray| s.column_by_name(consts::ID),
-            expect_type: || DataType::UInt16,
-        }
-        .downcast::<UInt16Array>()?;
+        let id = scope_array
+            .column_by_name(consts::ID)
+            .map(|a| {
+                a.as_any().downcast_ref::<UInt16Array>().with_context(|| {
+                    error::ColumnDataTypeMismatchSnafu {
+                        name: consts::ID,
+                        expect: DataType::UInt16,
+                        actual: a.data_type().clone(),
+                    }
+                })
+            })
+            .transpose()?;
 
         Ok(Self {
             name,
@@ -200,12 +225,12 @@ impl<'a> TryFrom<&'a RecordBatch> for ScopeArrays<'a> {
 struct MetricsArrays<'a> {
     id: &'a UInt16Array,
     metric_type: &'a UInt8Array,
-    schema_url: &'a StringArray,
-    name: &'a StringArray,
-    description: &'a StringArray,
-    unit: &'a StringArray,
-    aggregation_temporality: &'a Int32Array,
-    is_monotonic: &'a BooleanArray,
+    schema_url: Option<&'a StringArray>,
+    name: StringArrayAccessor<'a>,
+    description: StringArrayAccessor<'a>,
+    unit: Option<&'a StringArray>,
+    aggregation_temporality: Option<&'a Int32Array>,
+    is_monotonic: Option<&'a BooleanArray>,
 }
 
 impl<'a> TryFrom<&'a RecordBatch> for MetricsArrays<'a> {
@@ -214,12 +239,32 @@ impl<'a> TryFrom<&'a RecordBatch> for MetricsArrays<'a> {
     fn try_from(rb: &'a RecordBatch) -> Result<Self, Self::Error> {
         let id = get_u16_array(rb, consts::ID)?;
         let metric_type = get_u8_array(rb, consts::METRIC_TYPE)?;
-        let name = get_string_array(rb, consts::NAME)?;
-        let description = get_string_array(rb, consts::DESCRIPTION)?;
-        let schema_url = get_string_array(rb, consts::SCHEMA_URL)?;
-        let unit = get_string_array(rb, consts::UNIT)?;
-        let aggregation_temporality = get_i32_array(rb, consts::AGGREGATION_TEMPORALITY)?;
-        let is_monotonic = get_bool_array(rb, consts::IS_MONOTONIC)?;
+        let name = StringArrayAccessor::new(
+            rb.column_by_name(consts::NAME)
+                .context(error::ColumnNotFoundSnafu { name: consts::NAME })?,
+        )?;
+
+        let description = StringArrayAccessor::new(
+            rb.column_by_name(consts::DESCRIPTION)
+                .context(error::ColumnNotFoundSnafu {
+                    name: consts::DESCRIPTION,
+                })?,
+        )?;
+        let schema_url = get_string_array_opt(rb, consts::SCHEMA_URL)?;
+        let unit = rb
+            .column_by_name(consts::UNIT)
+            .map(|a| {
+                a.as_any().downcast_ref::<StringArray>().with_context(|| {
+                    error::ColumnDataTypeMismatchSnafu {
+                        name: consts::UNIT,
+                        expect: DataType::Utf8,
+                        actual: a.data_type().clone(),
+                    }
+                })
+            })
+            .transpose()?;
+        let aggregation_temporality = get_i32_array_opt(rb, consts::AGGREGATION_TEMPORALITY)?;
+        let is_monotonic = get_bool_array_opt(rb, consts::IS_MONOTONIC)?;
         Ok(Self {
             id,
             metric_type,
@@ -289,7 +334,7 @@ pub fn metrics_from(
             let scope_metrics = current_scope_metrics_slice.append_and_get();
 
             let mut scope = InstrumentationScope {
-                name: scope_arrays.name.value_at_or_default(idx),
+                name: scope_arrays.name.value_at(idx).unwrap_or_default(),
                 version: scope_arrays.version.value_at_or_default(idx),
                 dropped_attributes_count: scope_arrays
                     .dropped_attributes_count
@@ -331,8 +376,8 @@ pub fn metrics_from(
             .aggregation_temporality
             .value_at_or_default(idx);
         let is_monotonic = metrics_arrays.is_monotonic.value_at_or_default(idx);
-        current_metric.name = metrics_arrays.name.value_at_or_default(idx);
-        current_metric.description = metrics_arrays.description.value_at_or_default(idx);
+        current_metric.name = metrics_arrays.name.value_at(idx).unwrap_or_default();
+        current_metric.description = metrics_arrays.description.value_at(idx).unwrap_or_default();
         current_metric.unit = metrics_arrays.unit.value_at_or_default(idx);
 
         match metric_type {
