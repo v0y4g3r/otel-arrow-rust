@@ -27,5 +27,5 @@ includes = [
 ]
 
 excludes = [
-    "src/opentelemetry.proto.experimental.arrow.v1.rs",
+    "src/proto/opentelemetry.proto.experimental.arrow.v1.rs",
 ]
