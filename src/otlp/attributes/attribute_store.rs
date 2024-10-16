@@ -25,14 +25,14 @@ use crate::otlp::attributes::parent_id::ParentId;
 #[derive(Copy, Clone, Eq, PartialEq, Debug, TryFromPrimitive)]
 #[repr(u8)]
 pub enum AttributeValueType {
-    EMPTY = 0,
-    STR = 1,
-    INT = 2,
-    DOUBLE = 3,
-    BOOL = 4,
-    MAP = 5,
-    SLICE = 6,
-    BYTES = 7,
+    Empty = 0,
+    Str = 1,
+    Int = 2,
+    Double = 3,
+    Bool = 4,
+    Map = 5,
+    Slice = 6,
+    Bytes = 7,
 }
 
 pub type Attribute32Store = AttributeStore<u32>;
@@ -90,28 +90,28 @@ where
             let value_type = AttributeValueType::try_from(value_type_arr.value_at_or_default(idx))
                 .context(error::UnrecognizedAttributeValueTypeSnafu)?;
             let value = match value_type {
-                AttributeValueType::STR => {
+                AttributeValueType::Str => {
                     Value::StringValue(value_str_arr.value_at(idx).unwrap_or_default())
                 }
-                AttributeValueType::INT => Value::IntValue(value_int_arr.value_at_or_default(idx)),
-                AttributeValueType::DOUBLE => {
+                AttributeValueType::Int => Value::IntValue(value_int_arr.value_at_or_default(idx)),
+                AttributeValueType::Double => {
                     Value::DoubleValue(value_double_arr.value_at_or_default(idx))
                 }
-                AttributeValueType::BOOL => {
+                AttributeValueType::Bool => {
                     Value::BoolValue(value_bool_arr.value_at_or_default(idx))
                 }
-                AttributeValueType::BYTES => {
+                AttributeValueType::Bytes => {
                     Value::BytesValue(value_bytes_arr.value_at_or_default(idx))
                 }
-                AttributeValueType::SLICE => {
+                AttributeValueType::Slice => {
                     // todo: support deserialize [any_value::Value::ArrayValue]
                     return error::UnsupportedAttributeValueSnafu { type_name: "slice" }.fail();
                 }
-                AttributeValueType::MAP => {
+                AttributeValueType::Map => {
                     // todo: support deserialize [any_value::Value::KvlistValue]
                     return error::UnsupportedAttributeValueSnafu { type_name: "map" }.fail();
                 }
-                AttributeValueType::EMPTY => {
+                AttributeValueType::Empty => {
                     // should warn here.
                     continue;
                 }
