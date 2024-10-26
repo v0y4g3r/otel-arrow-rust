@@ -21,51 +21,36 @@ use arrow::ipc::reader::StreamReader;
 use opentelemetry_proto::tonic::collector::metrics::v1::ExportMetricsServiceRequest;
 use snafu::{ensure, OptionExt, ResultExt};
 use std::collections::HashMap;
-use std::io::{Cursor, Read};
-use std::sync::{Arc, Mutex};
-
-#[derive(Default)]
-pub struct Consumer {
-    stream_consumers: HashMap<String, StreamConsumer>,
-}
-
-struct SharedReader {
-    data: Arc<Mutex<Cursor<Vec<u8>>>>,
-}
-
-impl Read for SharedReader {
-    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
-        let mut data = self.data.lock().unwrap();
-        data.read(buf)
-    }
-}
+use std::io::Cursor;
 
 pub struct StreamConsumer {
     payload_type: ArrowPayloadType,
-    stream_reader: StreamReader<SharedReader>,
-    data: Arc<Mutex<Cursor<Vec<u8>>>>,
+    stream_reader: StreamReader<Cursor<Vec<u8>>>,
 }
 
 impl StreamConsumer {
     fn new(payload: ArrowPayloadType, initial_bytes: Vec<u8>) -> error::Result<Self> {
-        let data = Arc::new(Mutex::new(Cursor::new(initial_bytes)));
-        let shared_reader = SharedReader { data: data.clone() };
+        let data = Cursor::new(initial_bytes);
         let stream_reader =
-            StreamReader::try_new(shared_reader, None).context(error::BuildStreamReaderSnafu)?;
+            StreamReader::try_new(data.clone(), None).context(error::BuildStreamReaderSnafu)?;
         Ok(Self {
             payload_type: payload,
             stream_reader,
-            data,
         })
     }
 
-    fn replace_bytes(&self, bytes: Vec<u8>) {
-        *self.data.lock().unwrap() = Cursor::new(bytes);
+    fn replace_bytes(&mut self, bytes: Vec<u8>) {
+        *self.stream_reader.get_mut() = Cursor::new(bytes);
     }
 
     fn next(&mut self) -> Option<Result<RecordBatch, ArrowError>> {
         self.stream_reader.next()
     }
+}
+
+#[derive(Default)]
+pub struct Consumer {
+    stream_consumers: HashMap<String, StreamConsumer>,
 }
 
 impl Consumer {
@@ -153,5 +138,37 @@ impl Consumer {
             }
             .fail(),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::test_util::{create_record_batch, create_test_schema};
+    use std::io::Cursor;
+    use std::sync::Arc;
+
+    #[test]
+    fn test_replace_bytes() {
+        let schema = Arc::new(create_test_schema());
+        let mut writer = arrow::ipc::writer::StreamWriter::try_new(vec![], &schema).unwrap();
+
+        // write and check batch1
+        let batch1 = create_record_batch(schema.clone(), 10);
+        writer.write(&batch1).unwrap();
+        writer.flush().unwrap();
+        let mut reader = arrow::ipc::reader::StreamReader::try_new(
+            Cursor::new(std::mem::take(writer.get_mut())),
+            None,
+        )
+        .unwrap();
+        assert_eq!(batch1, reader.next().unwrap().unwrap());
+
+        // write and check batch2
+        *writer.get_mut() = vec![];
+        let batch2 = create_record_batch(schema.clone(), 11);
+        writer.write(&batch2).unwrap();
+        writer.flush().unwrap();
+        *reader.get_mut() = Cursor::new(std::mem::take(writer.get_mut()));
+        assert_eq!(batch2, reader.next().unwrap().unwrap());
     }
 }

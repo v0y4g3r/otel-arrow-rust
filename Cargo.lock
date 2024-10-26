@@ -1182,6 +1182,7 @@ dependencies = [
  "opentelemetry-proto",
  "paste",
  "prost",
+ "rand",
  "serde",
  "snafu",
  "tonic",
