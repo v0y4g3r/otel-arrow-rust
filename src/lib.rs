@@ -20,6 +20,8 @@ mod error;
 mod otlp;
 #[allow(dead_code)]
 mod schema;
+#[cfg(test)]
+mod test_util;
 
 #[path = ""]
 pub mod opentelemetry {
