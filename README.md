@@ -1,3 +1,7 @@
+# This repository has been deprecated. Furthuer development will continue on [opentelemetry/otel-arrow](https://github.com/open-telemetry/otel-arrow)
+
+
+
 # OTEL Arrow Protocol Implementation in Rust
 
 The non-official implementation for [OTEL Arrow protocol](https://github.com/open-telemetry/otel-arrow), written in Rust.
